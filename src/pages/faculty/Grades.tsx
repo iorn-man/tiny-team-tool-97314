@@ -1,0 +1,337 @@
+import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Save, Award, FileText } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+const Grades = () => {
+  const { toast } = useToast();
+
+  const courses = [
+    { id: "CS101", name: "Data Structures" },
+    { id: "CS102", name: "Algorithms" },
+    { id: "CS103", name: "Database Systems" },
+  ];
+
+  const assessmentTypes = [
+    { id: "midterm", name: "Midterm Exam", maxMarks: 100 },
+    { id: "final", name: "Final Exam", maxMarks: 100 },
+    { id: "assignment1", name: "Assignment 1", maxMarks: 50 },
+    { id: "assignment2", name: "Assignment 2", maxMarks: 50 },
+    { id: "project", name: "Project", maxMarks: 100 },
+    { id: "quiz1", name: "Quiz 1", maxMarks: 25 },
+    { id: "quiz2", name: "Quiz 2", maxMarks: 25 },
+  ];
+
+  const students = [
+    { id: "S001", name: "John Doe", rollNumber: "2024001" },
+    { id: "S002", name: "Jane Smith", rollNumber: "2024002" },
+    { id: "S003", name: "Bob Johnson", rollNumber: "2024003" },
+    { id: "S004", name: "Alice Brown", rollNumber: "2024004" },
+    { id: "S005", name: "Charlie Wilson", rollNumber: "2024005" },
+    { id: "S006", name: "Diana Martinez", rollNumber: "2024006" },
+  ];
+
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedAssessment, setSelectedAssessment] = useState("");
+  const [grades, setGrades] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const selectedAssessmentData = assessmentTypes.find(a => a.id === selectedAssessment);
+
+  const handleGradeChange = (studentId: string, value: string) => {
+    // Validate grade is within max marks
+    const numValue = parseFloat(value);
+    const maxMarks = selectedAssessmentData?.maxMarks || 100;
+    
+    if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
+      setGrades(prev => ({
+        ...prev,
+        [studentId]: value
+      }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!selectedCourse || !selectedAssessment) {
+      toast({
+        title: "Selection Required",
+        description: "Please select both course and assessment type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate all grades are entered
+    const missingGrades = students.filter(s => !grades[s.id] || grades[s.id] === "");
+    if (missingGrades.length > 0) {
+      toast({
+        title: "Incomplete Grades",
+        description: `Please enter grades for all students (${missingGrades.length} missing)`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Grades Submitted",
+      description: `Grades have been recorded for ${selectedAssessmentData?.name}`,
+    });
+
+    setSubmitted(true);
+  };
+
+  const getGradeColor = (marks: string) => {
+    const maxMarks = selectedAssessmentData?.maxMarks || 100;
+    const percentage = (parseFloat(marks) / maxMarks) * 100;
+    
+    if (percentage >= 90) return "text-success";
+    if (percentage >= 75) return "text-primary";
+    if (percentage >= 60) return "text-warning";
+    return "text-destructive";
+  };
+
+  const getGradeLetter = (marks: string) => {
+    const maxMarks = selectedAssessmentData?.maxMarks || 100;
+    const percentage = (parseFloat(marks) / maxMarks) * 100;
+    
+    if (percentage >= 90) return "A+";
+    if (percentage >= 85) return "A";
+    if (percentage >= 80) return "A-";
+    if (percentage >= 75) return "B+";
+    if (percentage >= 70) return "B";
+    if (percentage >= 65) return "B-";
+    if (percentage >= 60) return "C+";
+    if (percentage >= 55) return "C";
+    if (percentage >= 50) return "C-";
+    return "F";
+  };
+
+  const calculateStats = () => {
+    const validGrades = Object.values(grades).filter(g => g !== "").map(g => parseFloat(g));
+    if (validGrades.length === 0) return { average: 0, highest: 0, lowest: 0 };
+
+    const average = validGrades.reduce((a, b) => a + b, 0) / validGrades.length;
+    const highest = Math.max(...validGrades);
+    const lowest = Math.min(...validGrades);
+
+    return { average, highest, lowest };
+  };
+
+  const stats = calculateStats();
+
+  return (
+    <DashboardLayout role="faculty">
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="text-3xl font-bold">Manage Grades</h1>
+          <p className="text-muted-foreground">Enter and update student grades for assessments</p>
+        </div>
+
+        {selectedCourse && selectedAssessment && Object.values(grades).some(g => g !== "") && (
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats.average.toFixed(1)}</p>
+                    <p className="text-sm text-muted-foreground">Average Score</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-success/10">
+                    <Award className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-success">{stats.highest}</p>
+                    <p className="text-sm text-muted-foreground">Highest Score</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-destructive/10">
+                    <FileText className="h-6 w-6 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-destructive">{stats.lowest}</p>
+                    <p className="text-sm text-muted-foreground">Lowest Score</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Grade Entry</CardTitle>
+            <CardDescription>Select course and assessment type to enter grades</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="course">Select Course *</Label>
+                <Select value={selectedCourse} onValueChange={(value) => {
+                  setSelectedCourse(value);
+                  setSubmitted(false);
+                }}>
+                  <SelectTrigger id="course" className="bg-background">
+                    <SelectValue placeholder="Choose a course" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {courses.map(course => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.name} ({course.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assessment">Assessment Type *</Label>
+                <Select value={selectedAssessment} onValueChange={(value) => {
+                  setSelectedAssessment(value);
+                  setSubmitted(false);
+                }}>
+                  <SelectTrigger id="assessment" className="bg-background">
+                    <SelectValue placeholder="Choose assessment" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {assessmentTypes.map(assessment => (
+                      <SelectItem key={assessment.id} value={assessment.id}>
+                        {assessment.name} (Max: {assessment.maxMarks})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {selectedCourse && selectedAssessment && (
+              <>
+                <div className="p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-sm">
+                    <span className="font-medium">Assessment:</span> {selectedAssessmentData?.name} | 
+                    <span className="font-medium"> Max Marks:</span> {selectedAssessmentData?.maxMarks}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Roll Number</TableHead>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Marks Obtained</TableHead>
+                        <TableHead>Grade</TableHead>
+                        <TableHead className="text-right">Percentage</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {students.map((student) => {
+                        const marks = grades[student.id] || "";
+                        const percentage = marks 
+                          ? ((parseFloat(marks) / (selectedAssessmentData?.maxMarks || 100)) * 100).toFixed(1)
+                          : "-";
+                        const gradeLetter = marks ? getGradeLetter(marks) : "-";
+
+                        return (
+                          <TableRow key={student.id}>
+                            <TableCell className="font-medium">{student.rollNumber}</TableCell>
+                            <TableCell>{student.name}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={selectedAssessmentData?.maxMarks}
+                                step="0.5"
+                                value={marks}
+                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                                placeholder="0"
+                                className="w-24"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {marks && (
+                                <Badge variant="outline" className={getGradeColor(marks)}>
+                                  {gradeLetter}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={marks ? getGradeColor(marks) : ""}>
+                                {percentage}%
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setGrades({});
+                      setSubmitted(false);
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={submitted}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {submitted ? "Submitted" : "Submit Grades"}
+                  </Button>
+                </div>
+
+                {submitted && (
+                  <div className="p-4 rounded-lg bg-success/10 border border-success/20">
+                    <p className="text-sm text-success font-medium">
+                      ✓ Grades have been recorded successfully for {selectedAssessmentData?.name}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Grades;
