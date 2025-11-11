@@ -28,24 +28,22 @@ interface AddFacultyDialogProps {
 export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: "",
+    full_name: "",
     email: "",
     phone: "",
-    employeeId: "",
+    faculty_id: "",
     department: "",
     qualification: "",
     specialization: "",
-    dateOfJoining: "",
-    address: "",
-    emergencyContact: "",
-    emergencyContactName: "",
+    joining_date: "",
+    status: "active",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.name || !formData.email || !formData.employeeId || !formData.department) {
+    if (!formData.full_name || !formData.email || !formData.faculty_id || !formData.department) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -54,25 +52,19 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
       return;
     }
 
-    onSubmit({
-      ...formData,
-      id: `F${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      status: "Active",
-    });
+    onSubmit(formData);
 
     // Reset form
     setFormData({
-      name: "",
+      full_name: "",
       email: "",
       phone: "",
-      employeeId: "",
+      faculty_id: "",
       department: "",
       qualification: "",
       specialization: "",
-      dateOfJoining: "",
-      address: "",
-      emergencyContact: "",
-      emergencyContactName: "",
+      joining_date: "",
+      status: "active",
     });
 
     toast({
@@ -101,11 +93,11 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="full_name">Full Name *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Dr. John Doe"
                 required
               />
@@ -124,33 +116,23 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="faculty_id">Faculty ID *</Label>
+              <Input
+                id="faculty_id"
+                value={formData.faculty_id}
+                onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
+                placeholder="FAC2024001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+1234567890"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="employeeId">Employee ID *</Label>
-              <Input
-                id="employeeId"
-                value={formData.employeeId}
-                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                placeholder="EMP2024001"
-                required
-              />
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="123 Main Street, City"
               />
             </div>
 
@@ -210,38 +192,13 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateOfJoining">Date of Joining</Label>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="joining_date">Date of Joining</Label>
               <Input
-                id="dateOfJoining"
+                id="joining_date"
                 type="date"
-                value={formData.dateOfJoining}
-                onChange={(e) => setFormData({ ...formData, dateOfJoining: e.target.value })}
-              />
-            </div>
-
-            {/* Emergency Contact */}
-            <div className="col-span-2 pt-4">
-              <h3 className="text-sm font-semibold mb-3">Emergency Contact</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactName">Contact Name</Label>
-              <Input
-                id="emergencyContactName"
-                value={formData.emergencyContactName}
-                onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
-                placeholder="Emergency Contact Name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContact">Contact Phone</Label>
-              <Input
-                id="emergencyContact"
-                value={formData.emergencyContact}
-                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                placeholder="+1234567890"
+                value={formData.joining_date}
+                onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
               />
             </div>
           </div>

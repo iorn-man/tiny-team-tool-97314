@@ -15,12 +15,13 @@ interface AddCourseDialogProps {
 export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
+    course_code: "",
+    course_name: "",
+    description: "",
     credits: "",
-    faculty: "",
-    facultyId: "",
+    department: "",
     semester: "",
+    faculty_id: "",
     status: "active",
   });
 
@@ -34,7 +35,7 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.code || !formData.name || !formData.credits || !formData.facultyId || !formData.semester) {
+    if (!formData.course_code || !formData.course_name || !formData.credits || !formData.semester) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -42,27 +43,26 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
       });
       return;
     }
-
-    const selectedFaculty = facultyList.find(f => f.id === formData.facultyId);
     
     onAdd({
-      ...formData,
+      course_code: formData.course_code,
+      course_name: formData.course_name,
+      description: formData.description || null,
       credits: parseInt(formData.credits),
-      faculty: selectedFaculty?.name || "",
-    });
-
-    toast({
-      title: "Course Added",
-      description: `${formData.name} has been added successfully`,
+      department: formData.department || null,
+      semester: parseInt(formData.semester),
+      faculty_id: formData.faculty_id || null,
+      status: formData.status,
     });
 
     setFormData({
-      code: "",
-      name: "",
+      course_code: "",
+      course_name: "",
+      description: "",
       credits: "",
-      faculty: "",
-      facultyId: "",
+      department: "",
       semester: "",
+      faculty_id: "",
       status: "active",
     });
     
@@ -77,24 +77,34 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="code">Course Code *</Label>
+            <Label htmlFor="course_code">Course Code *</Label>
             <Input
-              id="code"
+              id="course_code"
               placeholder="e.g., CS101"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              value={formData.course_code}
+              onChange={(e) => setFormData({ ...formData, course_code: e.target.value })}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Course Name *</Label>
+            <Label htmlFor="course_name">Course Name *</Label>
             <Input
-              id="name"
+              id="course_name"
               placeholder="e.g., Introduction to Programming"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.course_name}
+              onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              placeholder="Course description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
 
@@ -113,32 +123,36 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="faculty">Assign Faculty *</Label>
-            <Select
-              value={formData.facultyId}
-              onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select faculty" />
-              </SelectTrigger>
-              <SelectContent>
-                {facultyList.map((faculty) => (
-                  <SelectItem key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="department">Department</Label>
+            <Input
+              id="department"
+              placeholder="e.g., Computer Science"
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="semester">Semester *</Label>
+            <Label htmlFor="semester">Semester (1-8) *</Label>
             <Input
               id="semester"
-              placeholder="e.g., Fall 2024"
+              type="number"
+              min="1"
+              max="8"
+              placeholder="e.g., 1"
               value={formData.semester}
               onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="faculty_id">Faculty ID (Optional)</Label>
+            <Input
+              id="faculty_id"
+              placeholder="Faculty UUID"
+              value={formData.faculty_id}
+              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
             />
           </div>
 

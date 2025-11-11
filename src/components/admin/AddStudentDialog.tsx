@@ -28,23 +28,21 @@ interface AddStudentDialogProps {
 export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: "",
+    full_name: "",
     email: "",
     phone: "",
-    enrollmentNumber: "",
-    course: "",
-    year: "",
-    dateOfBirth: "",
+    student_id: "",
+    date_of_birth: "",
+    gender: "",
     address: "",
-    guardianName: "",
-    guardianPhone: "",
+    status: "active",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.name || !formData.email || !formData.enrollmentNumber || !formData.course || !formData.year) {
+    if (!formData.full_name || !formData.email || !formData.student_id) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -53,24 +51,18 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
       return;
     }
 
-    onSubmit({
-      ...formData,
-      id: `S${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      status: "Active",
-    });
+    onSubmit(formData);
 
     // Reset form
     setFormData({
-      name: "",
+      full_name: "",
       email: "",
       phone: "",
-      enrollmentNumber: "",
-      course: "",
-      year: "",
-      dateOfBirth: "",
+      student_id: "",
+      date_of_birth: "",
+      gender: "",
       address: "",
-      guardianName: "",
-      guardianPhone: "",
+      status: "active",
     });
 
     toast({
@@ -99,11 +91,11 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="full_name">Full Name *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="John Doe"
                 required
               />
@@ -122,6 +114,17 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="student_id">Student ID *</Label>
+              <Input
+                id="student_id"
+                value={formData.student_id}
+                onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
+                placeholder="STU2024001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
@@ -132,13 +135,30 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
+              <Label htmlFor="date_of_birth">Date of Birth</Label>
               <Input
-                id="dob"
+                id="date_of_birth"
                 type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => setFormData({ ...formData, gender: value })}
+              >
+                <SelectTrigger id="gender" className="bg-background">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="col-span-2 space-y-2">
@@ -148,84 +168,6 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="123 Main Street, City"
-              />
-            </div>
-
-            {/* Academic Information */}
-            <div className="col-span-2 pt-4">
-              <h3 className="text-sm font-semibold mb-3">Academic Information</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="enrollment">Enrollment Number *</Label>
-              <Input
-                id="enrollment"
-                value={formData.enrollmentNumber}
-                onChange={(e) => setFormData({ ...formData, enrollmentNumber: e.target.value })}
-                placeholder="EN2024001"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="course">Course *</Label>
-              <Select
-                value={formData.course}
-                onValueChange={(value) => setFormData({ ...formData, course: value })}
-              >
-                <SelectTrigger id="course" className="bg-background">
-                  <SelectValue placeholder="Select course" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
-                  <SelectItem value="Information Technology">Information Technology</SelectItem>
-                  <SelectItem value="Software Engineering">Software Engineering</SelectItem>
-                  <SelectItem value="Data Science">Data Science</SelectItem>
-                  <SelectItem value="Cyber Security">Cyber Security</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="year">Year *</Label>
-              <Select
-                value={formData.year}
-                onValueChange={(value) => setFormData({ ...formData, year: value })}
-              >
-                <SelectTrigger id="year" className="bg-background">
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="1st Year">1st Year</SelectItem>
-                  <SelectItem value="2nd Year">2nd Year</SelectItem>
-                  <SelectItem value="3rd Year">3rd Year</SelectItem>
-                  <SelectItem value="4th Year">4th Year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Guardian Information */}
-            <div className="col-span-2 pt-4">
-              <h3 className="text-sm font-semibold mb-3">Guardian Information</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="guardianName">Guardian Name</Label>
-              <Input
-                id="guardianName"
-                value={formData.guardianName}
-                onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
-                placeholder="Guardian Full Name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="guardianPhone">Guardian Phone</Label>
-              <Input
-                id="guardianPhone"
-                value={formData.guardianPhone}
-                onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
-                placeholder="+1234567890"
               />
             </div>
           </div>
