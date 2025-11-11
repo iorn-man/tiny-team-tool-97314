@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -35,10 +36,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       toast({
         title: "Validation Error",
-        description: "Password must be at least 8 characters",
+        description: "Password must be at least 6 characters",
         variant: "destructive",
       });
       return;
@@ -46,15 +47,27 @@ const ResetPassword = () => {
 
     setIsLoading(true);
 
-    // UI only - simulate password reset
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Password Reset Successful",
         description: "Your password has been updated",
       });
-      setIsLoading(false);
       navigate("/login");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

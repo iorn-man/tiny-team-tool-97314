@@ -1,4 +1,4 @@
-import { Bell, User, Moon, Sun } from "lucide-react";
+import { Bell, User, Moon, Sun, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -82,8 +82,10 @@ const DashboardHeader = ({ role }: DashboardHeaderProps) => {
           <DropdownMenuContent align="end" className="w-56 animate-scale-in">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Profile Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               Logout
