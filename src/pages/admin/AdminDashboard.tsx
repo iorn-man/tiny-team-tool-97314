@@ -1,17 +1,19 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import StatsCard from "@/components/StatsCard";
-import { Users, UserCheck, BookOpen, Calendar } from "lucide-react";
+import { Users, UserCheck, BookOpen, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartWrapper } from "@/components/shared/ChartWrapper";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 const AdminDashboard = () => {
-  // Mock data - will be replaced with real data from Supabase
+  const { data: dashboardStats, isLoading } = useDashboardStats();
+
   const stats = [
-    { title: "Total Students", value: "1,234", icon: Users, trend: { value: "12%", isPositive: true } },
-    { title: "Faculty Members", value: "45", icon: UserCheck, trend: { value: "5%", isPositive: true } },
-    { title: "Active Courses", value: "28", icon: BookOpen, trend: { value: "3%", isPositive: false } },
-    { title: "Classes Today", value: "16", icon: Calendar },
+    { title: "Total Students", value: dashboardStats?.totalStudents.toString() || "0", icon: Users },
+    { title: "Faculty Members", value: dashboardStats?.totalFaculty.toString() || "0", icon: UserCheck },
+    { title: "Active Courses", value: dashboardStats?.totalCourses.toString() || "0", icon: BookOpen },
+    { title: "Pending Feedback", value: dashboardStats?.pendingFeedback.toString() || "0", icon: MessageSquare },
   ];
 
   const recentActivities = [

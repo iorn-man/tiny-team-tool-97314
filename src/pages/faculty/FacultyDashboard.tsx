@@ -1,14 +1,29 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import StatsCard from "@/components/StatsCard";
-import { BookOpen, Calendar, ClipboardCheck, Users } from "lucide-react";
+import { BookOpen, Users, UserCheck, FileText, Calendar } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCourses } from "@/hooks/useCourses";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFaculty } from "@/hooks/useFaculty";
 
 const FacultyDashboard = () => {
+  const { user } = useAuth();
+  const { faculty } = useFaculty();
+  const { courses } = useCourses();
+  const { enrollments } = useEnrollments();
+
+  const currentFaculty = faculty.find(f => f.user_id === user?.id);
+  const myCourses = courses.filter(c => c.faculty_id === currentFaculty?.id);
+  const myEnrollments = enrollments.filter(e => 
+    myCourses.some(course => course.id === e.course_id)
+  );
+
   const stats = [
-    { title: "My Courses", value: "6", icon: BookOpen },
-    { title: "Classes Today", value: "3", icon: Calendar },
-    { title: "Pending Grades", value: "12", icon: ClipboardCheck },
-    { title: "Total Students", value: "180", icon: Users },
+    { title: "My Courses", value: myCourses.length.toString(), icon: BookOpen },
+    { title: "Total Students", value: myEnrollments.length.toString(), icon: Users },
+    { title: "Active Enrollments", value: myEnrollments.filter(e => e.status === "enrolled").length.toString(), icon: UserCheck },
+    { title: "Total Faculty", value: faculty.length.toString(), icon: FileText },
   ];
 
   const todayClasses = [
