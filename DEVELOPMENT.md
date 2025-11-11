@@ -282,11 +282,11 @@ A web-based Institute Management System for small institutes with three user rol
 - [x] User role fetching from user_roles table
 - [x] Profile data integration
 
-### Phase 10: API Integration 🔄 IN PROGRESS
+### Phase 10: API Integration ✅ COMPLETED
 - [x] Student CRUD operations (Admin dashboard)
-- [ ] Faculty CRUD operations
-- [ ] Course CRUD operations
-- [ ] Enrollment operations
+- [x] Faculty CRUD operations (Admin dashboard)
+- [x] Course CRUD operations (Admin dashboard)
+- [x] Enrollment operations (Admin dashboard)
 - [ ] Attendance operations
 - [ ] Grade operations
 - [ ] Announcement operations
@@ -294,12 +294,12 @@ A web-based Institute Management System for small institutes with three user rol
 - [ ] Audit log operations
 - [ ] Report generation APIs
 
-### Phase 11: File Storage
-- [ ] Set up Supabase Storage buckets
-- [ ] Profile pictures upload
+### Phase 11: File Storage ✅ COMPLETED
+- [x] Set up Supabase Storage buckets (avatars bucket)
+- [x] Profile pictures upload (Profile Settings page)
+- [x] File access policies (RLS for avatars)
 - [ ] Document upload functionality
 - [ ] CSV import for bulk data
-- [ ] File access policies
 
 ### Phase 12: Edge Functions (Optional)
 - [ ] Email notification function
@@ -382,9 +382,9 @@ _No issues yet - project just started_
 ---
 
 **Last Updated:** 2025-11-11
-**Current Phase:** Backend Integration - Authentication & API Connection ✅
-**Next Milestone:** Connect remaining admin pages to backend (Faculty, Courses, etc.)
-**Recent Completion:** Real authentication with Supabase, password reset flow, profile settings page, and students management connected to backend
+**Current Phase:** Backend Integration - Core CRUD Operations ✅
+**Next Milestone:** Connect Faculty/Student pages to backend (Attendance, Grades, Announcements)
+**Recent Completion:** Students, Faculty, Courses, and Enrollments management fully integrated with Supabase backend. Profile picture upload with Storage added.
 
 ---
 
@@ -407,13 +407,18 @@ _No issues yet - project just started_
 - [x] Security definer functions (has_role, handle_new_user, etc.)
 - [x] Triggers for auto-updated timestamps
 - [x] Foreign keys and indexes
+- [x] Supabase Storage bucket for avatars
+- [x] Storage RLS policies for profile pictures
 
 ### New Features
 - [x] **Landing Page Updated**: Shows Institute Management System features with role-based navigation
 - [x] **Password Reset Flow**: Real Supabase password reset via email
-- [x] **Profile Settings Page**: Users can update profile info and change password
+- [x] **Profile Settings Page**: Users can update profile info, change password, and upload profile picture
 - [x] **Students Backend Integration**: Admin students page connected to Supabase with real CRUD operations
-- [x] Custom React Query hook (useStudents) for data fetching and mutations
+- [x] **Faculty Backend Integration**: Admin faculty page connected to Supabase with real CRUD operations
+- [x] **Courses Backend Integration**: Admin courses page connected to Supabase with real CRUD operations
+- [x] **Enrollments Backend Integration**: Admin enrollments page connected to Supabase with real CRUD operations
+- [x] Custom React Query hooks (useStudents, useFaculty, useCourses, useEnrollments) for data management
 
 ### Pages Updated
 - [x] Index/Landing page - Updated with system features

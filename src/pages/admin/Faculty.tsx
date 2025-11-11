@@ -3,6 +3,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2, Edit, Eye } from "lucide-react";
+import { useFaculty } from "@/hooks/useFaculty";
+import { LoadingSkeleton } from "@/components/shared";
 import {
   Table,
   TableBody,
@@ -25,15 +27,7 @@ import { DeleteFacultyDialog } from "@/components/admin/DeleteFacultyDialog";
 import { FacultyDetailDialog } from "@/components/admin/FacultyDetailDialog";
 
 const Faculty = () => {
-  // Mock data - will be replaced with Supabase data
-  const [faculty, setFaculty] = useState([
-    { id: "F001", name: "Dr. Sarah Johnson", email: "sarah.j@institute.edu", phone: "+1234567890", employeeId: "EMP2024001", department: "Computer Science", qualification: "Ph.D.", specialization: "Machine Learning", dateOfJoining: "2020-01-15", address: "123 Oak St, City", emergencyContact: "+1234567891", emergencyContactName: "Mike Johnson", status: "Active" },
-    { id: "F002", name: "Prof. Michael Chen", email: "michael.c@institute.edu", phone: "+1234567892", employeeId: "EMP2024002", department: "Information Technology", qualification: "Ph.D.", specialization: "Cloud Computing", dateOfJoining: "2019-08-20", address: "456 Pine Ave, Town", emergencyContact: "+1234567893", emergencyContactName: "Lisa Chen", status: "Active" },
-    { id: "F003", name: "Dr. Emily Davis", email: "emily.d@institute.edu", phone: "+1234567894", employeeId: "EMP2024003", department: "Software Engineering", qualification: "M.Tech", specialization: "Software Architecture", dateOfJoining: "2021-03-10", address: "789 Maple Dr, Village", emergencyContact: "+1234567895", emergencyContactName: "Robert Davis", status: "Active" },
-    { id: "F004", name: "Prof. James Wilson", email: "james.w@institute.edu", phone: "+1234567896", employeeId: "EMP2024004", department: "Data Science", qualification: "Ph.D.", specialization: "Big Data Analytics", dateOfJoining: "2018-06-25", address: "321 Elm St, City", emergencyContact: "+1234567897", emergencyContactName: "Emma Wilson", status: "On Leave" },
-    { id: "F005", name: "Dr. Priya Sharma", email: "priya.s@institute.edu", phone: "+1234567898", employeeId: "EMP2024005", department: "Cyber Security", qualification: "Ph.D.", specialization: "Network Security", dateOfJoining: "2022-01-05", address: "654 Cedar Ln, Town", emergencyContact: "+1234567899", emergencyContactName: "Raj Sharma", status: "Active" },
-    { id: "F006", name: "Prof. David Martinez", email: "david.m@institute.edu", phone: "+1234567800", employeeId: "EMP2024006", department: "Computer Science", qualification: "M.Sc", specialization: "Algorithms", dateOfJoining: "2020-09-15", address: "987 Birch Ave, Village", emergencyContact: "+1234567801", emergencyContactName: "Maria Martinez", status: "Active" },
-  ]);
+  const { faculty, isLoading, createFaculty, updateFaculty, deleteFaculty } = useFaculty();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
@@ -54,11 +48,10 @@ const Faculty = () => {
   const filteredFaculty = useMemo(() => {
     return faculty.filter((member) => {
       const matchesSearch = 
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.department.toLowerCase().includes(searchQuery.toLowerCase());
+        member.faculty_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (member.department && member.department.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesDepartment = filterDepartment === "all" || member.department === filterDepartment;
       const matchesQualification = filterQualification === "all" || member.qualification === filterQualification;
@@ -82,15 +75,15 @@ const Faculty = () => {
 
   // Dialog handlers
   const handleAddFaculty = (newFaculty: any) => {
-    setFaculty([...faculty, newFaculty]);
+    createFaculty.mutate(newFaculty);
   };
 
   const handleEditFaculty = (updatedFaculty: any) => {
-    setFaculty(faculty.map(f => f.id === updatedFaculty.id ? updatedFaculty : f));
+    updateFaculty.mutate(updatedFaculty);
   };
 
   const handleDeleteFaculty = (facultyId: string) => {
-    setFaculty(faculty.filter(f => f.id !== facultyId));
+    deleteFaculty.mutate(facultyId);
   };
 
   const handleViewDetails = (member: any) => {
@@ -111,6 +104,14 @@ const Faculty = () => {
   const departments = ["Computer Science", "Information Technology", "Software Engineering", "Data Science", "Cyber Security", "Mathematics", "Physics"];
   const qualifications = ["Ph.D.", "M.Tech", "M.Sc", "M.E.", "MBA", "B.Tech"];
   const statuses = ["Active", "On Leave", "Inactive", "Retired"];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <LoadingSkeleton />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="admin">
@@ -216,14 +217,14 @@ const Faculty = () => {
               ) : (
                 paginatedFaculty.map((member) => (
                   <TableRow key={member.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{member.id}</TableCell>
-                    <TableCell>{member.name}</TableCell>
+                    <TableCell className="font-medium">{member.faculty_id}</TableCell>
+                    <TableCell>{member.full_name}</TableCell>
                     <TableCell>{member.email}</TableCell>
-                    <TableCell>{member.department}</TableCell>
-                    <TableCell>{member.qualification}</TableCell>
+                    <TableCell>{member.department || "N/A"}</TableCell>
+                    <TableCell>{member.qualification || "N/A"}</TableCell>
                     <TableCell>
-                      <Badge variant={member.status === "Active" ? "default" : "secondary"}>
-                        {member.status}
+                      <Badge variant={member.status === "active" ? "default" : "secondary"}>
+                        {member.status || "active"}
                       </Badge>
                     </TableCell>
                     <TableCell>

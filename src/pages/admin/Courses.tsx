@@ -3,6 +3,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { useCourses } from "@/hooks/useCourses";
+import { LoadingSkeleton } from "@/components/shared";
 import {
   Table,
   TableBody,
@@ -36,76 +38,39 @@ interface Course {
 }
 
 const Courses = () => {
+  const { courses, isLoading, createCourse, updateCourse, deleteCourse } = useCourses();
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-
-  const [courses, setCourses] = useState<Course[]>([
-    {
-      id: "C001",
-      code: "CS101",
-      name: "Introduction to Programming",
-      credits: 4,
-      faculty: "Dr. John Smith",
-      facultyId: "F001",
-      semester: "Fall 2024",
-      status: "active",
-      enrolledStudents: 45,
-    },
-    {
-      id: "C002",
-      code: "MATH201",
-      name: "Calculus II",
-      credits: 3,
-      faculty: "Dr. Sarah Johnson",
-      facultyId: "F002",
-      semester: "Fall 2024",
-      status: "active",
-      enrolledStudents: 38,
-    },
-    {
-      id: "C003",
-      code: "ENG101",
-      name: "English Composition",
-      credits: 3,
-      faculty: "Prof. Michael Brown",
-      facultyId: "F003",
-      semester: "Fall 2024",
-      status: "inactive",
-      enrolledStudents: 0,
-    },
-  ]);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
 
   const filteredCourses = courses.filter(
     (course) =>
-      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.faculty.toLowerCase().includes(searchQuery.toLowerCase())
+      course.course_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.course_code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddCourse = (courseData: any) => {
-    const newCourse: Course = {
-      id: "C" + String(courses.length + 1).padStart(3, "0"),
-      ...courseData,
-      enrolledStudents: 0,
-    };
-    setCourses([...courses, newCourse]);
+    createCourse.mutate(courseData);
   };
 
   const handleEditCourse = (courseData: any) => {
-    setCourses(
-      courses.map((c) =>
-        c.id === selectedCourse?.id ? { ...c, ...courseData } : c
-      )
-    );
+    updateCourse.mutate({ id: selectedCourse.id, ...courseData });
   };
 
   const handleDeleteCourse = (courseId: string) => {
-    setCourses(courses.filter((c) => c.id !== courseId));
+    deleteCourse.mutate(courseId);
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <LoadingSkeleton />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="admin">
@@ -152,15 +117,15 @@ const Courses = () => {
             <TableBody>
               {filteredCourses.map((course) => (
                 <TableRow key={course.id}>
-                  <TableCell className="font-medium">{course.code}</TableCell>
-                  <TableCell>{course.name}</TableCell>
+                  <TableCell className="font-medium">{course.course_code}</TableCell>
+                  <TableCell>{course.course_name}</TableCell>
                   <TableCell>{course.credits}</TableCell>
-                  <TableCell>{course.faculty}</TableCell>
-                  <TableCell>{course.semester}</TableCell>
-                  <TableCell>{course.enrolledStudents}</TableCell>
+                  <TableCell>Faculty Assigned</TableCell>
+                  <TableCell>Semester {course.semester || "N/A"}</TableCell>
+                  <TableCell>0</TableCell>
                   <TableCell>
                     <Badge variant={course.status === "active" ? "default" : "secondary"}>
-                      {course.status}
+                      {course.status || "active"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

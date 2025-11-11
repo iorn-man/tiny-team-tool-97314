@@ -3,6 +3,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import { useStudents } from "@/hooks/useStudents";
+import { useCourses } from "@/hooks/useCourses";
+import { LoadingSkeleton } from "@/components/shared";
 import {
   Table,
   TableBody,
@@ -42,31 +46,9 @@ import {
 
 const Enrollments = () => {
   const { toast } = useToast();
-  
-  // Mock data
-  const [enrollments, setEnrollments] = useState([
-    { id: "E001", studentId: "S001", studentName: "John Doe", courseId: "CS101", courseName: "Data Structures", semester: "Fall 2024", status: "Active", enrolledDate: "2024-08-15" },
-    { id: "E002", studentId: "S001", studentName: "John Doe", courseId: "CS102", courseName: "Algorithms", semester: "Fall 2024", status: "Active", enrolledDate: "2024-08-15" },
-    { id: "E003", studentId: "S002", studentName: "Jane Smith", courseId: "IT201", courseName: "Web Development", semester: "Fall 2024", status: "Active", enrolledDate: "2024-08-16" },
-    { id: "E004", studentId: "S003", studentName: "Bob Johnson", courseId: "CS101", courseName: "Data Structures", semester: "Fall 2024", status: "Active", enrolledDate: "2024-08-17" },
-    { id: "E005", studentId: "S004", studentName: "Alice Brown", courseId: "SE301", courseName: "Software Engineering", semester: "Fall 2024", status: "Dropped", enrolledDate: "2024-08-15" },
-  ]);
-
-  const students = [
-    { id: "S001", name: "John Doe" },
-    { id: "S002", name: "Jane Smith" },
-    { id: "S003", name: "Bob Johnson" },
-    { id: "S004", name: "Alice Brown" },
-    { id: "S005", name: "Charlie Wilson" },
-  ];
-
-  const courses = [
-    { id: "CS101", name: "Data Structures", semester: "Fall 2024" },
-    { id: "CS102", name: "Algorithms", semester: "Fall 2024" },
-    { id: "IT201", name: "Web Development", semester: "Fall 2024" },
-    { id: "SE301", name: "Software Engineering", semester: "Fall 2024" },
-    { id: "DB401", name: "Database Systems", semester: "Fall 2024" },
-  ];
+  const { enrollments, isLoading, createEnrollment, deleteEnrollment } = useEnrollments();
+  const { students } = useStudents();
+  const { courses } = useCourses();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCourse, setFilterCourse] = useState("all");
@@ -87,13 +69,15 @@ const Enrollments = () => {
 
   // Filter and search logic
   const filteredEnrollments = useMemo(() => {
-    return enrollments.filter((enrollment) => {
+    return enrollments.filter((enrollment: any) => {
+      const studentName = enrollment.students?.full_name || "";
+      const courseName = enrollment.courses?.course_name || "";
       const matchesSearch = 
-        enrollment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        enrollment.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         enrollment.id.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesCourse = filterCourse === "all" || enrollment.courseId === filterCourse;
+      const matchesCourse = filterCourse === "all" || enrollment.course_id === filterCourse;
       const matchesStatus = filterStatus === "all" || enrollment.status === filterStatus;
       
       return matchesSearch && matchesCourse && matchesStatus;
@@ -123,12 +107,9 @@ const Enrollments = () => {
       return;
     }
 
-    const student = students.find(s => s.id === formData.studentId);
-    const course = courses.find(c => c.id === formData.courseId);
-
     // Check if already enrolled
-    const existing = enrollments.find(e => 
-      e.studentId === formData.studentId && e.courseId === formData.courseId && e.status === "Active"
+    const existing = enrollments.find((e: any) => 
+      e.student_id === formData.studentId && e.course_id === formData.courseId && e.status === "enrolled"
     );
 
     if (existing) {
@@ -140,45 +121,30 @@ const Enrollments = () => {
       return;
     }
 
-    const newEnrollment = {
-      id: `E${String(enrollments.length + 1).padStart(3, '0')}`,
-      studentId: formData.studentId,
-      studentName: student?.name || "",
-      courseId: formData.courseId,
-      courseName: course?.name || "",
-      semester: course?.semester || "Fall 2024",
-      status: "Active",
-      enrolledDate: new Date().toISOString().split('T')[0],
-    };
-
-    setEnrollments([...enrollments, newEnrollment]);
+    createEnrollment.mutate({
+      student_id: formData.studentId,
+      course_id: formData.courseId,
+    });
+    
     setFormData({ studentId: "", courseId: "" });
     setAddDialogOpen(false);
-
-    toast({
-      title: "Student Enrolled",
-      description: `${student?.name} has been enrolled in ${course?.name}`,
-    });
   };
 
   const handleUnenroll = () => {
     if (selectedEnrollment) {
-      setEnrollments(enrollments.map(e => 
-        e.id === selectedEnrollment.id 
-          ? { ...e, status: "Dropped" }
-          : e
-      ));
-      
-      toast({
-        title: "Enrollment Dropped",
-        description: `${selectedEnrollment.studentName} has been unenrolled from ${selectedEnrollment.courseName}`,
-        variant: "destructive",
-      });
-      
+      deleteEnrollment.mutate(selectedEnrollment.id);
       setDeleteDialogOpen(false);
       setSelectedEnrollment(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <LoadingSkeleton />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="admin">
@@ -221,8 +187,8 @@ const Enrollments = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
                     <SelectItem value="all">All Courses</SelectItem>
-                    {courses.map(course => (
-                      <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                    {courses.map((course: any) => (
+                      <SelectItem key={course.id} value={course.id}>{course.course_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -266,21 +232,21 @@ const Enrollments = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedEnrollments.map((enrollment) => (
+                paginatedEnrollments.map((enrollment: any) => (
                   <TableRow key={enrollment.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{enrollment.id}</TableCell>
-                    <TableCell>{enrollment.studentName}</TableCell>
-                    <TableCell>{enrollment.courseName}</TableCell>
-                    <TableCell>{enrollment.semester}</TableCell>
-                    <TableCell>{enrollment.enrolledDate}</TableCell>
+                    <TableCell>{enrollment.students?.full_name || "N/A"}</TableCell>
+                    <TableCell>{enrollment.courses?.course_name || "N/A"}</TableCell>
+                    <TableCell>Semester {enrollment.courses?.semester || "N/A"}</TableCell>
+                    <TableCell>{enrollment.enrollment_date || new Date().toISOString().split('T')[0]}</TableCell>
                     <TableCell>
-                      <Badge variant={enrollment.status === "Active" ? "default" : "secondary"}>
+                      <Badge variant={enrollment.status === "enrolled" ? "default" : "secondary"}>
                         {enrollment.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
-                        {enrollment.status === "Active" && (
+                        {enrollment.status === "enrolled" && (
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -363,9 +329,9 @@ const Enrollments = () => {
                   <SelectValue placeholder="Select student" />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  {students.map(student => (
+                  {students.map((student: any) => (
                     <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.id})
+                      {student.full_name} ({student.student_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -379,9 +345,9 @@ const Enrollments = () => {
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  {courses.map(course => (
+                  {courses.map((course: any) => (
                     <SelectItem key={course.id} value={course.id}>
-                      {course.name} ({course.semester})
+                      {course.course_name} (Semester {course.semester})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -404,8 +370,8 @@ const Enrollments = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Unenroll Student?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to unenroll <span className="font-semibold">{selectedEnrollment?.studentName}</span> from{" "}
-              <span className="font-semibold">{selectedEnrollment?.courseName}</span>? This will mark the enrollment as dropped.
+              Are you sure you want to unenroll <span className="font-semibold">{selectedEnrollment?.students?.full_name}</span> from{" "}
+              <span className="font-semibold">{selectedEnrollment?.courses?.course_name}</span>? This will mark the enrollment as dropped.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
