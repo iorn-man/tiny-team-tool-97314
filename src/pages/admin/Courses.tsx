@@ -2,7 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, MoreVertical, Eye, Pencil, Trash2, Upload } from "lucide-react";
 import { useCourses } from "@/hooks/useCourses";
 import { LoadingSkeleton } from "@/components/shared";
 import {
@@ -24,6 +24,7 @@ import { AddCourseDialog } from "@/components/admin/AddCourseDialog";
 import { EditCourseDialog } from "@/components/admin/EditCourseDialog";
 import { DeleteCourseDialog } from "@/components/admin/DeleteCourseDialog";
 import { CourseDetailDialog } from "@/components/admin/CourseDetailDialog";
+import { CSVImportDialog } from "@/components/admin/CSVImportDialog";
 
 interface Course {
   id: string;
@@ -44,6 +45,7 @@ const Courses = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
 
   const filteredCourses = courses.filter(
@@ -64,6 +66,16 @@ const Courses = () => {
     deleteCourse.mutate(courseId);
   };
 
+  const handleCSVImport = async (data: any[]) => {
+    for (const row of data) {
+      try {
+        await createCourse.mutateAsync(row);
+      } catch (error) {
+        console.error("Error importing row:", error);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout role="admin">
@@ -82,10 +94,16 @@ const Courses = () => {
               Manage courses, assign faculty, and track enrollments
             </p>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Course
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setCsvImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Course
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -198,6 +216,13 @@ const Courses = () => {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         course={selectedCourse}
+      />
+
+      <CSVImportDialog
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onImport={handleCSVImport}
+        type="courses"
       />
     </DashboardLayout>
   );

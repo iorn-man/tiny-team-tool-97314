@@ -37,6 +37,22 @@ export const useFaculty = () => {
 
   const createFaculty = useMutation({
     mutationFn: async (newFaculty: Omit<Faculty, "id" | "created_at" | "updated_at">) => {
+      // Check for unique constraints
+      const { data: existingFaculty } = await supabase
+        .from("faculties")
+        .select("faculty_id, email")
+        .or(`faculty_id.eq.${newFaculty.faculty_id},email.eq.${newFaculty.email}`)
+        .maybeSingle();
+
+      if (existingFaculty) {
+        if (existingFaculty.faculty_id === newFaculty.faculty_id) {
+          throw new Error("Faculty ID already exists");
+        }
+        if (existingFaculty.email === newFaculty.email) {
+          throw new Error("Email already exists");
+        }
+      }
+
       const { data, error } = await supabase
         .from("faculties")
         .insert([newFaculty])

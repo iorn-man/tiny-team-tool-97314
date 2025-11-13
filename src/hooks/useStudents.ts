@@ -37,6 +37,22 @@ export const useStudents = () => {
 
   const createStudent = useMutation({
     mutationFn: async (newStudent: Omit<Student, "id" | "created_at" | "updated_at">) => {
+      // Check for unique constraints
+      const { data: existingStudent } = await supabase
+        .from("students")
+        .select("student_id, email")
+        .or(`student_id.eq.${newStudent.student_id},email.eq.${newStudent.email}`)
+        .maybeSingle();
+
+      if (existingStudent) {
+        if (existingStudent.student_id === newStudent.student_id) {
+          throw new Error("Student ID already exists");
+        }
+        if (existingStudent.email === newStudent.email) {
+          throw new Error("Email already exists");
+        }
+      }
+
       const { data, error } = await supabase
         .from("students")
         .insert([newStudent])

@@ -35,6 +35,17 @@ export const useCourses = () => {
 
   const createCourse = useMutation({
     mutationFn: async (newCourse: Omit<Course, "id" | "created_at" | "updated_at">) => {
+      // Check for unique course code
+      const { data: existingCourse } = await supabase
+        .from("courses")
+        .select("course_code")
+        .eq("course_code", newCourse.course_code)
+        .maybeSingle();
+
+      if (existingCourse) {
+        throw new Error("Course code already exists");
+      }
+
       const { data, error } = await supabase
         .from("courses")
         .insert([newCourse])

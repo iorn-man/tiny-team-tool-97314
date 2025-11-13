@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { facultySchema } from "@/lib/validations";
 
 interface AddFacultyDialogProps {
   open: boolean;
@@ -38,15 +39,25 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
     joining_date: "",
     status: "active",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
-    // Basic validation
-    if (!formData.full_name || !formData.email || !formData.faculty_id || !formData.department) {
+    const validation = facultySchema.safeParse(formData);
+
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please check all required fields",
         variant: "destructive",
       });
       return;
@@ -66,6 +77,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
       joining_date: "",
       status: "active",
     });
+    setErrors({});
 
     toast({
       title: "Success",
@@ -101,6 +113,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
                 placeholder="Dr. John Doe"
                 required
               />
+              {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
             </div>
 
             <div className="space-y-2">
@@ -113,6 +126,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
                 placeholder="john.doe@institute.edu"
                 required
               />
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -124,6 +138,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
                 placeholder="FAC2024001"
                 required
               />
+              {errors.faculty_id && <p className="text-sm text-destructive">{errors.faculty_id}</p>}
             </div>
 
             <div className="space-y-2">
@@ -160,6 +175,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
                   <SelectItem value="Physics">Physics</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
             </div>
 
             <div className="space-y-2">

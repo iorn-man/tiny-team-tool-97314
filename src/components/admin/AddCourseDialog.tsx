@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useFaculty } from "@/hooks/useFaculty";
+import { courseSchema } from "@/lib/validations";
 
 interface AddCourseDialogProps {
   open: boolean;
@@ -14,6 +16,7 @@ interface AddCourseDialogProps {
 
 export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogProps) {
   const { toast } = useToast();
+  const { faculty: facultyList, isLoading: facultyLoading } = useFaculty();
   const [formData, setFormData] = useState({
     course_code: "",
     course_name: "",
@@ -24,21 +27,34 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
     faculty_id: "",
     status: "active",
   });
-
-  // Mock faculty data
-  const facultyList = [
-    { id: "F001", name: "Dr. John Smith" },
-    { id: "F002", name: "Dr. Sarah Johnson" },
-    { id: "F003", name: "Prof. Michael Brown" },
-  ];
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
-    if (!formData.course_code || !formData.course_name || !formData.credits || !formData.semester) {
+    const validation = courseSchema.safeParse({
+      course_code: formData.course_code,
+      course_name: formData.course_name,
+      description: formData.description || undefined,
+      credits: formData.credits ? parseInt(formData.credits) : 0,
+      department: formData.department || undefined,
+      semester: formData.semester ? parseInt(formData.semester) : 0,
+      faculty_id: formData.faculty_id || undefined,
+      status: formData.status,
+    });
+
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please check all required fields",
         variant: "destructive",
       });
       return;
@@ -65,6 +81,7 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
       faculty_id: "",
       status: "active",
     });
+    setErrors({});
     
     onOpenChange(false);
   };
@@ -85,6 +102,7 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
               onChange={(e) => setFormData({ ...formData, course_code: e.target.value })}
               required
             />
+            {errors.course_code && <p className="text-sm text-destructive">{errors.course_code}</p>}
           </div>
 
           <div className="space-y-2">
@@ -147,13 +165,24 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="faculty_id">Faculty ID (Optional)</Label>
-            <Input
-              id="faculty_id"
-              placeholder="Faculty UUID"
+            <Label htmlFor="faculty_id">Assign Faculty (Optional)</Label>
+            <Select
               value={formData.faculty_id}
-              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
-            />
+              onValueChange={(value) => setFormData({ ...formData, faculty_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={facultyLoading ? "Loading..." : "Select faculty member"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {facultyList.map((faculty) => (
+                  <SelectItem key={faculty.id} value={faculty.id}>
+                    {faculty.full_name} ({faculty.faculty_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.faculty_id && <p className="text-sm text-destructive">{errors.faculty_id}</p>}
           </div>
 
           <div className="space-y-2">

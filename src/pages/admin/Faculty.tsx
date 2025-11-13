@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2, Edit, Eye, Upload } from "lucide-react";
 import { useFaculty } from "@/hooks/useFaculty";
 import { LoadingSkeleton } from "@/components/shared";
 import {
@@ -25,6 +25,7 @@ import { AddFacultyDialog } from "@/components/admin/AddFacultyDialog";
 import { EditFacultyDialog } from "@/components/admin/EditFacultyDialog";
 import { DeleteFacultyDialog } from "@/components/admin/DeleteFacultyDialog";
 import { FacultyDetailDialog } from "@/components/admin/FacultyDetailDialog";
+import { CSVImportDialog } from "@/components/admin/CSVImportDialog";
 
 const Faculty = () => {
   const { faculty, isLoading, createFaculty, updateFaculty, deleteFaculty } = useFaculty();
@@ -41,6 +42,7 @@ const Faculty = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -101,6 +103,16 @@ const Faculty = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleCSVImport = async (data: any[]) => {
+    for (const row of data) {
+      try {
+        await createFaculty.mutateAsync(row);
+      } catch (error) {
+        console.error("Error importing row:", error);
+      }
+    }
+  };
+
   const departments = ["Computer Science", "Information Technology", "Software Engineering", "Data Science", "Cyber Security", "Mathematics", "Physics"];
   const qualifications = ["Ph.D.", "M.Tech", "M.Sc", "M.E.", "MBA", "B.Tech"];
   const statuses = ["Active", "On Leave", "Inactive", "Retired"];
@@ -121,10 +133,16 @@ const Faculty = () => {
             <h1 className="text-3xl font-bold">Faculty Members</h1>
             <p className="text-muted-foreground">Manage faculty records and assignments</p>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Faculty
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setCsvImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Faculty
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -330,6 +348,13 @@ const Faculty = () => {
         open={detailDialogOpen} 
         onOpenChange={setDetailDialogOpen} 
         faculty={selectedFaculty}
+      />
+
+      <CSVImportDialog
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onImport={handleCSVImport}
+        type="faculty"
       />
     </DashboardLayout>
   );
