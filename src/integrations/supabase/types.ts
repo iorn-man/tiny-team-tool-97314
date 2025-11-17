@@ -250,6 +250,7 @@ export type Database = {
           full_name: string
           id: string
           joining_date: string | null
+          password: string | null
           phone: string | null
           qualification: string | null
           specialization: string | null
@@ -265,6 +266,7 @@ export type Database = {
           full_name: string
           id?: string
           joining_date?: string | null
+          password?: string | null
           phone?: string | null
           qualification?: string | null
           specialization?: string | null
@@ -280,6 +282,7 @@ export type Database = {
           full_name?: string
           id?: string
           joining_date?: string | null
+          password?: string | null
           phone?: string | null
           qualification?: string | null
           specialization?: string | null
@@ -448,6 +451,7 @@ export type Database = {
           full_name: string
           gender: string | null
           id: string
+          password: string | null
           phone: string | null
           status: string | null
           student_id: string
@@ -463,6 +467,7 @@ export type Database = {
           full_name: string
           gender?: string | null
           id?: string
+          password?: string | null
           phone?: string | null
           status?: string | null
           student_id: string
@@ -478,6 +483,7 @@ export type Database = {
           full_name?: string
           gender?: string | null
           id?: string
+          password?: string | null
           phone?: string | null
           status?: string | null
           student_id?: string

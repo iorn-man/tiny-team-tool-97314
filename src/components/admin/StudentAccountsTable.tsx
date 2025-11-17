@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,21 +10,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoadingSkeleton } from "@/components/shared";
+import { Eye, EyeOff } from "lucide-react";
 
 export const StudentAccountsTable = () => {
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  
   const { data: students, isLoading } = useQuery({
     queryKey: ["student-accounts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("id, full_name, email, student_id, status, user_id")
+        .select("id, full_name, email, student_id, status, password")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
     },
   });
+
+  const togglePasswordVisibility = (id: string) => {
+    setVisiblePasswords((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) return <LoadingSkeleton />;
 
@@ -35,7 +52,7 @@ export const StudentAccountsTable = () => {
             <TableHead>Full Name</TableHead>
             <TableHead>Student ID</TableHead>
             <TableHead>Email (Login ID)</TableHead>
-            <TableHead>User ID</TableHead>
+            <TableHead>Password</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -52,7 +69,27 @@ export const StudentAccountsTable = () => {
                 <TableCell className="font-medium">{student.full_name}</TableCell>
                 <TableCell>{student.student_id}</TableCell>
                 <TableCell>{student.email}</TableCell>
-                <TableCell className="font-mono text-xs">{student.user_id || "N/A"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm">
+                      {visiblePasswords.has(student.id) 
+                        ? student.password || "Not set"
+                        : "••••••••"}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => togglePasswordVisibility(student.id)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {visiblePasswords.has(student.id) ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={student.status === "active" ? "default" : "secondary"}
