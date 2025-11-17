@@ -37,8 +37,9 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
 
   const adminItems = [
     { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
-    { title: "Students", url: "/admin/students", icon: Users },
-    { title: "Faculty", url: "/admin/faculty", icon: UserCheck },
+    { title: "Users", url: "/admin/users", icon: Users },
+    { title: "Students", url: "/admin/students", icon: UserCheck },
+    { title: "Faculty", url: "/admin/faculty", icon: GraduationCap },
     { title: "Courses", url: "/admin/courses", icon: BookOpen },
     { title: "Enrollments", url: "/admin/enrollments", icon: ClipboardCheck },
     { title: "Announcements", url: "/admin/announcements", icon: MessageSquare },

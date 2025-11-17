@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Lock, Mail, User, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { GraduationCap, Lock, Mail, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema, signUpSchema } from "@/lib/validations";
@@ -154,12 +153,6 @@ const Login = () => {
           <CardDescription>Sign in to access your dashboard</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Note:</strong> Email verification is required for new accounts. Check your Supabase settings to disable this for testing.
-            </AlertDescription>
-          </Alert>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
@@ -282,13 +275,6 @@ const Login = () => {
                   </Select>
                   {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
                 </div>
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    <strong>Admin Note:</strong> After signing up, you may need to assign specific student/faculty records in the database to link your account.
-                  </AlertDescription>
-                </Alert>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Sign Up"}
