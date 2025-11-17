@@ -81,7 +81,7 @@ export const CreateFacultyAccountDialog = ({
 
       if (roleError) throw roleError;
 
-      // Create faculty record
+      // Create faculty record with password for admin reference
       const { error: facultyError } = await supabase
         .from("faculties")
         .insert({
@@ -90,6 +90,7 @@ export const CreateFacultyAccountDialog = ({
           full_name: values.fullName,
           faculty_id: values.facultyId,
           department: values.department,
+          password: values.password,
           status: "active",
         });
 

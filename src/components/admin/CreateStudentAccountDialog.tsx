@@ -79,7 +79,7 @@ export const CreateStudentAccountDialog = ({
 
       if (roleError) throw roleError;
 
-      // Create student record
+      // Create student record with password for admin reference
       const { error: studentError } = await supabase
         .from("students")
         .insert({
@@ -87,6 +87,7 @@ export const CreateStudentAccountDialog = ({
           email: values.email,
           full_name: values.fullName,
           student_id: values.studentId,
+          password: values.password,
           status: "active",
         });
 
