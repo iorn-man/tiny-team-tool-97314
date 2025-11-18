@@ -24,47 +24,79 @@ Deno.serve(async (req) => {
 
     const { email, password, fullName, role, recordId } = await req.json()
 
-    // Create user with admin API (bypasses signup restrictions)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        full_name: fullName
-      }
-    })
+    let userId: string
 
-    if (authError) {
-      throw authError
-    }
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+    const existingUser = existingUsers?.users?.find(u => u.email === email)
 
-    // Assign role to user
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: authData.user.id,
-        role: role
+    if (existingUser) {
+      // User already exists, use their ID
+      userId = existingUser.id
+      console.log(`User already exists with email ${email}, using existing user ID: ${userId}`)
+    } else {
+      // Create new user with admin API (bypasses signup restrictions)
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm email
+        user_metadata: {
+          full_name: fullName
+        }
       })
 
-    if (roleError) {
-      throw roleError
+      if (authError) {
+        throw authError
+      }
+
+      userId = authData.user.id
+      console.log(`Created new user with email ${email}, user ID: ${userId}`)
+    }
+
+    // Check if role already exists for this user
+    const { data: existingRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', role)
+      .single()
+
+    // Assign role to user only if it doesn't exist
+    if (!existingRole) {
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role
+        })
+
+      if (roleError) {
+        console.error('Role assignment error:', roleError)
+        throw roleError
+      }
+      console.log(`Assigned ${role} role to user ${userId}`)
+    } else {
+      console.log(`User ${userId} already has ${role} role`)
     }
 
     // Update the student/faculty record with user_id
     const tableName = role === 'student' ? 'students' : 'faculties'
     const { error: updateError } = await supabaseAdmin
       .from(tableName)
-      .update({ user_id: authData.user.id })
+      .update({ user_id: userId })
       .eq('id', recordId)
 
     if (updateError) {
+      console.error('Record update error:', updateError)
       throw updateError
     }
+    console.log(`Updated ${tableName} record ${recordId} with user_id ${userId}`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        userId: authData.user.id 
+        userId: userId,
+        message: existingUser ? 'Linked to existing user account' : 'Created new user account'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
