@@ -11,6 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('=== CREATE USER FUNCTION CALLED ===')
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -22,11 +24,19 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { email, password, fullName, role, recordId } = await req.json()
+    const requestBody = await req.json()
+    console.log('Request body:', JSON.stringify(requestBody))
+    
+    const { email, password, fullName, role, recordId } = requestBody
+
+    if (!email || !password || !fullName || !role || !recordId) {
+      throw new Error('Missing required fields')
+    }
 
     let userId: string
 
     // Check if user already exists
+    console.log(`Checking if user exists with email: ${email}`)
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const existingUser = existingUsers?.users?.find(u => u.email === email)
 
@@ -36,6 +46,7 @@ Deno.serve(async (req) => {
       console.log(`User already exists with email ${email}, using existing user ID: ${userId}`)
     } else {
       // Create new user with admin API (bypasses signup restrictions)
+      console.log(`Creating new user with email: ${email}`)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -46,6 +57,7 @@ Deno.serve(async (req) => {
       })
 
       if (authError) {
+        console.error('Auth error:', authError)
         throw authError
       }
 
@@ -54,15 +66,21 @@ Deno.serve(async (req) => {
     }
 
     // Check if role already exists for this user
-    const { data: existingRole } = await supabaseAdmin
+    console.log(`Checking existing roles for user ${userId}`)
+    const { data: existingRole, error: roleCheckError } = await supabaseAdmin
       .from('user_roles')
       .select('*')
       .eq('user_id', userId)
       .eq('role', role)
-      .single()
+      .maybeSingle()
+
+    if (roleCheckError) {
+      console.error('Role check error:', roleCheckError)
+    }
 
     // Assign role to user only if it doesn't exist
     if (!existingRole) {
+      console.log(`Assigning ${role} role to user ${userId}`)
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({
@@ -74,13 +92,14 @@ Deno.serve(async (req) => {
         console.error('Role assignment error:', roleError)
         throw roleError
       }
-      console.log(`Assigned ${role} role to user ${userId}`)
+      console.log(`Successfully assigned ${role} role to user ${userId}`)
     } else {
       console.log(`User ${userId} already has ${role} role`)
     }
 
     // Update the student/faculty record with user_id
     const tableName = role === 'student' ? 'students' : 'faculties'
+    console.log(`Updating ${tableName} record ${recordId} with user_id ${userId}`)
     const { error: updateError } = await supabaseAdmin
       .from(tableName)
       .update({ user_id: userId })
@@ -90,8 +109,9 @@ Deno.serve(async (req) => {
       console.error('Record update error:', updateError)
       throw updateError
     }
-    console.log(`Updated ${tableName} record ${recordId} with user_id ${userId}`)
+    console.log(`Successfully updated ${tableName} record ${recordId} with user_id ${userId}`)
 
+    console.log('=== CREATE USER FUNCTION COMPLETED SUCCESSFULLY ===')
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -104,6 +124,8 @@ Deno.serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('=== CREATE USER FUNCTION ERROR ===')
+    console.error('Error details:', error)
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
     return new Response(
       JSON.stringify({ 
