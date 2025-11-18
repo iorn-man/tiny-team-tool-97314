@@ -57,41 +57,34 @@ export const CreateStudentAccountDialog = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: values.fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
-
-      // Assign student role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: authData.user.id, role: "student" });
-
-      if (roleError) throw roleError;
-
-      // Create student record with password for admin reference
-      const { error: studentError } = await supabase
+      // First create student record without user_id
+      const { data: studentData, error: studentError } = await supabase
         .from("students")
         .insert({
-          user_id: authData.user.id,
-          email: values.email,
-          full_name: values.fullName,
           student_id: values.studentId,
+          full_name: values.fullName,
+          email: values.email,
           password: values.password,
           status: "active",
-        });
+        })
+        .select()
+        .single();
 
       if (studentError) throw studentError;
+
+      // Call edge function to create auth user with admin API
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: values.email,
+          password: values.password,
+          fullName: values.fullName,
+          role: 'student',
+          recordId: studentData.id
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Success",

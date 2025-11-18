@@ -59,42 +59,35 @@ export const CreateFacultyAccountDialog = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: values.fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
-
-      // Assign faculty role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: authData.user.id, role: "faculty" });
-
-      if (roleError) throw roleError;
-
-      // Create faculty record with password for admin reference
-      const { error: facultyError } = await supabase
+      // First create faculty record without user_id
+      const { data: facultyData, error: facultyError } = await supabase
         .from("faculties")
         .insert({
-          user_id: authData.user.id,
-          email: values.email,
-          full_name: values.fullName,
           faculty_id: values.facultyId,
-          department: values.department,
+          full_name: values.fullName,
+          email: values.email,
           password: values.password,
+          department: values.department,
           status: "active",
-        });
+        })
+        .select()
+        .single();
 
       if (facultyError) throw facultyError;
+
+      // Call edge function to create auth user with admin API
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: values.email,
+          password: values.password,
+          fullName: values.fullName,
+          role: 'faculty',
+          recordId: facultyData.id
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Success",
