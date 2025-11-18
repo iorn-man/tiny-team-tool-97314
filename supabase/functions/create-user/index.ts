@@ -41,9 +41,22 @@ Deno.serve(async (req) => {
     const existingUser = existingUsers?.users?.find(u => u.email === email)
 
     if (existingUser) {
-      // User already exists, use their ID
+      // Check if user already has a different role
       userId = existingUser.id
-      console.log(`User already exists with email ${email}, using existing user ID: ${userId}`)
+      console.log(`User already exists with email ${email}, checking existing roles`)
+      
+      const { data: existingRoles } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+      
+      const hasConflictingRole = existingRoles?.some(r => r.role !== role)
+      if (hasConflictingRole) {
+        console.error(`User ${email} already has a different role`)
+        throw new Error(`This email is already registered with a different account type. Please use a unique email.`)
+      }
+      
+      console.log(`Using existing user ID: ${userId}`)
     } else {
       // Create new user with admin API (bypasses signup restrictions)
       console.log(`Creating new user with email: ${email}`)
