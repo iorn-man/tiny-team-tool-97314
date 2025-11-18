@@ -66,6 +66,7 @@ export const CreateStudentAccountDialog = ({
             full_name: values.fullName,
           },
           emailRedirectTo: `${window.location.origin}/`,
+          autoConfirm: true,
         },
       });
 
