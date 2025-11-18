@@ -57,6 +57,23 @@ export const CreateStudentAccountDialog = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      // Check if email already exists in students or faculties
+      const { data: existingStudent } = await supabase
+        .from("students")
+        .select("id")
+        .eq("email", values.email)
+        .maybeSingle();
+      
+      const { data: existingFaculty } = await supabase
+        .from("faculties")
+        .select("id")
+        .eq("email", values.email)
+        .maybeSingle();
+
+      if (existingStudent || existingFaculty) {
+        throw new Error("This email is already registered. Please use a unique email address.");
+      }
+
       // First create student record without user_id
       const { data: studentData, error: studentError } = await supabase
         .from("students")
@@ -88,7 +105,8 @@ export const CreateStudentAccountDialog = ({
 
       toast({
         title: "Success",
-        description: "Student account created successfully",
+        description: `Student account created! Login with email: ${values.email}`,
+        duration: 8000,
       });
 
       form.reset();
