@@ -20,6 +20,7 @@ import Announcements from "./pages/admin/Announcements";
 import Feedback from "./pages/admin/Feedback";
 import Reports from "./pages/admin/Reports";
 import AuditLogs from "./pages/admin/AuditLogs";
+import SeedData from "./pages/admin/SeedData";
 import FacultyDashboard from "./pages/faculty/FacultyDashboard";
 import MyCourses from "./pages/faculty/MyCourses";
 import Attendance from "./pages/faculty/Attendance";
@@ -105,6 +106,11 @@ const App = () => (
             <Route path="/admin/audit-logs" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AuditLogs />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/seed-data" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <SeedData />
               </ProtectedRoute>
             } />
             
