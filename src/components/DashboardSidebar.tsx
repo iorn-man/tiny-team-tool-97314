@@ -75,12 +75,18 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
   return (
     <Sidebar collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
       <div className="p-4 border-b">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <img 
             src={dreamCodeLogo} 
             alt="Dream Code Logo" 
-            className={collapsed ? "h-8 w-8 object-contain flex-shrink-0" : "h-12 w-auto object-contain"}
+            className="h-10 w-auto object-contain flex-shrink-0"
           />
+          {!collapsed && (
+            <div>
+              <p className="font-semibold text-sm">Institute</p>
+              <p className="text-xs text-muted-foreground">Management</p>
+            </div>
+          )}
         </div>
       </div>
 
