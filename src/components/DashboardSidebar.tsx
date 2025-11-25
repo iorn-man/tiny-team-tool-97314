@@ -9,11 +9,12 @@ import {
   FileText,
   MessageSquare,
   Settings,
-  GraduationCap,
   UserCheck,
   BarChart3,
   Shield,
+  Briefcase,
 } from "lucide-react";
+import instituteLogo from "@/assets/institute-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -39,9 +40,10 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
     { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
     { title: "Users", url: "/admin/users", icon: Users },
     { title: "Students", url: "/admin/students", icon: UserCheck },
-    { title: "Faculty", url: "/admin/faculty", icon: GraduationCap },
+    { title: "Faculty", url: "/admin/faculty", icon: UserCheck },
     { title: "Courses", url: "/admin/courses", icon: BookOpen },
     { title: "Enrollments", url: "/admin/enrollments", icon: ClipboardCheck },
+    { title: "Placements", url: "/admin/placements", icon: Briefcase },
     { title: "Announcements", url: "/admin/announcements", icon: MessageSquare },
     { title: "Feedback", url: "/admin/feedback", icon: FileText },
     { title: "Reports", url: "/admin/reports", icon: BarChart3 },
@@ -74,9 +76,11 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
     <Sidebar collapsible="icon" className={collapsed ? "w-14" : "w-64"}>
       <div className="p-4 border-b">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img 
+            src={instituteLogo} 
+            alt="Institute Logo" 
+            className="h-10 w-10 object-contain flex-shrink-0"
+          />
           {!collapsed && (
             <div>
               <p className="font-semibold text-sm">Institute</p>
