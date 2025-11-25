@@ -14,7 +14,7 @@ import {
   Shield,
   Briefcase,
 } from "lucide-react";
-import instituteLogo from "@/assets/institute-logo.png";
+import dreamCodeLogo from "@/assets/dream-code-logo-full.jpg";
 import {
   Sidebar,
   SidebarContent,
@@ -77,16 +77,10 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
       <div className="p-4 border-b">
         <div className="flex items-center gap-2">
           <img 
-            src={instituteLogo} 
-            alt="Institute Logo" 
-            className="h-10 w-10 object-contain flex-shrink-0"
+            src={dreamCodeLogo} 
+            alt="Dream Code Logo" 
+            className={collapsed ? "h-8 w-8 object-contain flex-shrink-0" : "h-12 w-auto object-contain"}
           />
-          {!collapsed && (
-            <div>
-              <p className="font-semibold text-sm">Institute</p>
-              <p className="text-xs text-muted-foreground">Management</p>
-            </div>
-          )}
         </div>
       </div>
 
