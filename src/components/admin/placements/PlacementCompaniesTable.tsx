@@ -3,14 +3,17 @@ import { usePlacementCompanies } from "@/hooks/usePlacementCompanies";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, MapPin, DollarSign } from "lucide-react";
+import { Edit, Trash2, MapPin, DollarSign } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { format } from "date-fns";
+import { EditCompanyDialog } from "./EditCompanyDialog";
+import { DeleteCompanyDialog } from "./DeleteCompanyDialog";
 
 export const PlacementCompaniesTable = () => {
   const { data: companies, isLoading } = usePlacementCompanies();
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [editingCompany, setEditingCompany] = useState<any>(null);
+  const [deletingCompany, setDeletingCompany] = useState<any>(null);
 
   if (isLoading) {
     return <TableSkeleton rows={5} />;
@@ -59,13 +62,10 @@ export const PlacementCompaniesTable = () => {
               <TableCell>{format(new Date(company.created_at), "MMM dd, yyyy")}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={() => setEditingCompany(company)}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={() => setDeletingCompany(company)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -74,6 +74,18 @@ export const PlacementCompaniesTable = () => {
           ))}
         </TableBody>
       </Table>
+
+      <EditCompanyDialog
+        open={!!editingCompany}
+        onOpenChange={(open) => !open && setEditingCompany(null)}
+        company={editingCompany}
+      />
+      
+      <DeleteCompanyDialog
+        open={!!deletingCompany}
+        onOpenChange={(open) => !open && setDeletingCompany(null)}
+        company={deletingCompany}
+      />
     </div>
   );
 };
