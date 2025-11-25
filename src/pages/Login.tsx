@@ -90,7 +90,7 @@ const Login = () => {
               <GraduationCap className="h-10 w-10 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">College Portal</CardTitle>
+          <CardTitle className="text-3xl font-bold">Institute Portal</CardTitle>
           <CardDescription>
             Student Information & Management System
           </CardDescription>
