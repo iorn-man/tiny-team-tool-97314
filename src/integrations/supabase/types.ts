@@ -411,6 +411,98 @@ export type Database = {
           },
         ]
       }
+      placement_companies: {
+        Row: {
+          company_name: string
+          created_at: string
+          description: string | null
+          id: string
+          industry: string
+          location: string
+          max_package: number
+          min_package: number
+          status: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry: string
+          location: string
+          max_package: number
+          min_package: number
+          status?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string
+          location?: string
+          max_package?: number
+          min_package?: number
+          status?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      placement_schedule: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          drive_date: string
+          drive_time: string
+          eligible_branches: string[]
+          id: string
+          min_cgpa: number
+          status: string | null
+          updated_at: string
+          venue: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          drive_date: string
+          drive_time: string
+          eligible_branches?: string[]
+          id?: string
+          min_cgpa: number
+          status?: string | null
+          updated_at?: string
+          venue: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          drive_date?: string
+          drive_time?: string
+          eligible_branches?: string[]
+          id?: string
+          min_cgpa?: number
+          status?: string | null
+          updated_at?: string
+          venue?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_schedule_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "placement_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -440,6 +532,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      student_placements: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          package_offered: number
+          placement_date: string
+          position: string
+          status: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          package_offered: number
+          placement_date?: string
+          position: string
+          status?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          package_offered?: number
+          placement_date?: string
+          position?: string
+          status?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_placements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "placement_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_placements_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {

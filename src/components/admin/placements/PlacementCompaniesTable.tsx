@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, MapPin, DollarSign } from "lucide-react";
-import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
+import { TableSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { format } from "date-fns";
 
@@ -13,11 +13,11 @@ export const PlacementCompaniesTable = () => {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   if (isLoading) {
-    return <LoadingSkeleton count={5} />;
+    return <TableSkeleton rows={5} />;
   }
 
   if (!companies || companies.length === 0) {
-    return <EmptyState message="No companies added yet" />;
+    return <EmptyState title="No companies added yet" />;
   }
 
   return (
