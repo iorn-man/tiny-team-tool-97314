@@ -20,13 +20,6 @@ export const PlacedStudentsTable = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export Report
-        </Button>
-      </div>
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
