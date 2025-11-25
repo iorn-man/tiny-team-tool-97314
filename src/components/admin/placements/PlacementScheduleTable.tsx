@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Calendar, Clock } from "lucide-react";
-import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
+import { TableSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { format } from "date-fns";
 
@@ -11,11 +11,11 @@ export const PlacementScheduleTable = () => {
   const { data: schedules, isLoading } = usePlacementSchedule();
 
   if (isLoading) {
-    return <LoadingSkeleton count={5} />;
+    return <TableSkeleton rows={5} />;
   }
 
   if (!schedules || schedules.length === 0) {
-    return <EmptyState message="No placement drives scheduled" />;
+    return <EmptyState title="No placement drives scheduled" />;
   }
 
   const getStatusBadge = (status: string) => {

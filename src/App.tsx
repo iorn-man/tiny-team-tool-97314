@@ -17,6 +17,7 @@ import Faculty from "./pages/admin/Faculty";
 import Courses from "./pages/admin/Courses";
 import Enrollments from "./pages/admin/Enrollments";
 import Announcements from "./pages/admin/Announcements";
+import Placements from "./pages/admin/Placements";
 import Feedback from "./pages/admin/Feedback";
 import Reports from "./pages/admin/Reports";
 import AuditLogs from "./pages/admin/AuditLogs";
@@ -91,6 +92,11 @@ const App = () => (
             <Route path="/admin/announcements" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Announcements />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/placements" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Placements />
               </ProtectedRoute>
             } />
             <Route path="/admin/feedback" element={
