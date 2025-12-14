@@ -119,6 +119,11 @@ const App = () => (
                 <SeedData />
               </ProtectedRoute>
             } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
             
             {/* Faculty Routes */}
             <Route path="/faculty/dashboard" element={
@@ -151,6 +156,11 @@ const App = () => (
                 <FacultyReports />
               </ProtectedRoute>
             } />
+            <Route path="/faculty/settings" element={
+              <ProtectedRoute allowedRoles={["faculty"]}>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
             
             {/* Student Routes */}
             <Route path="/student/dashboard" element={
@@ -181,6 +191,11 @@ const App = () => (
             <Route path="/student/feedback" element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <StudentFeedback />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/settings" element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <ProfileSettings />
               </ProtectedRoute>
             } />
             
