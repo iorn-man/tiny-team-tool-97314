@@ -12,10 +12,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSkeleton } from "@/components/shared";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Pencil } from "lucide-react";
+import { EditFacultyAccountDialog } from "./EditFacultyAccountDialog";
+
+interface Faculty {
+  id: string;
+  full_name: string;
+  email: string;
+  faculty_id: string;
+  department: string | null;
+  status: string | null;
+  password: string | null;
+}
 
 export const FacultyAccountsTable = () => {
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   
   const { data: faculties, isLoading } = useQuery({
     queryKey: ["faculty-accounts"],
@@ -26,7 +39,7 @@ export const FacultyAccountsTable = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Faculty[];
     },
   });
 
@@ -42,68 +55,91 @@ export const FacultyAccountsTable = () => {
     });
   };
 
+  const handleEdit = (faculty: Faculty) => {
+    setSelectedFaculty(faculty);
+    setEditDialogOpen(true);
+  };
+
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Full Name</TableHead>
-            <TableHead>Faculty ID</TableHead>
-            <TableHead>Email (Login ID)</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Password</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {faculties?.length === 0 ? (
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                No faculty accounts found
-              </TableCell>
+              <TableHead>Full Name</TableHead>
+              <TableHead>Faculty ID</TableHead>
+              <TableHead>Email (Login ID)</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Password</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ) : (
-            faculties?.map((faculty) => (
-              <TableRow key={faculty.id}>
-                <TableCell className="font-medium">{faculty.full_name}</TableCell>
-                <TableCell>{faculty.faculty_id}</TableCell>
-                <TableCell>{faculty.email}</TableCell>
-                <TableCell>{faculty.department}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm">
-                      {visiblePasswords.has(faculty.id) 
-                        ? faculty.password || "Not set"
-                        : "••••••••"}
-                    </span>
+          </TableHeader>
+          <TableBody>
+            {faculties?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  No faculty accounts found
+                </TableCell>
+              </TableRow>
+            ) : (
+              faculties?.map((faculty) => (
+                <TableRow key={faculty.id}>
+                  <TableCell className="font-medium">{faculty.full_name}</TableCell>
+                  <TableCell>{faculty.faculty_id}</TableCell>
+                  <TableCell>{faculty.email}</TableCell>
+                  <TableCell>{faculty.department}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm">
+                        {visiblePasswords.has(faculty.id) 
+                          ? faculty.password || "Not set"
+                          : "••••••••"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => togglePasswordVisibility(faculty.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {visiblePasswords.has(faculty.id) ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={faculty.status === "active" ? "default" : "secondary"}
+                    >
+                      {faculty.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => togglePasswordVisibility(faculty.id)}
-                      className="h-8 w-8 p-0"
+                      onClick={() => handleEdit(faculty)}
                     >
-                      {visiblePasswords.has(faculty.id) ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={faculty.status === "active" ? "default" : "secondary"}
-                  >
-                    {faculty.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <EditFacultyAccountDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        faculty={selectedFaculty}
+      />
+    </>
   );
 };

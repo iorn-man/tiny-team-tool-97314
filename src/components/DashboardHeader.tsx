@@ -13,6 +13,11 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
+import { useAnnouncements } from "@/hooks/useAnnouncements";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 interface DashboardHeaderProps {
   role: "admin" | "faculty" | "student";
@@ -22,6 +27,11 @@ const DashboardHeader = ({ role }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { announcements } = useAnnouncements();
+
+  // Get recent announcements (last 10)
+  const recentAnnouncements = announcements.slice(0, 10);
+  const unreadCount = recentAnnouncements.length;
 
   const handleLogout = () => {
     logout();
@@ -41,6 +51,10 @@ const DashboardHeader = ({ role }: DashboardHeaderProps) => {
       case "student":
         return "Student";
     }
+  };
+
+  const handleSettingsClick = () => {
+    navigate(`/${role}/settings`);
   };
 
   return (
@@ -64,9 +78,64 @@ const DashboardHeader = ({ role }: DashboardHeaderProps) => {
           )}
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative transition-transform hover:scale-110">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse"></span>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative transition-transform hover:scale-110">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Notifications</SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="h-[calc(100vh-100px)] mt-4">
+              <div className="space-y-4">
+                {recentAnnouncements.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No notifications yet
+                  </p>
+                ) : (
+                  recentAnnouncements.map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{announcement.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {announcement.content}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {announcement.priority}
+                        </Badge>
+                      </div>
+                      {announcement.created_at && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {format(new Date(announcement.created_at), "MMM d, yyyy HH:mm")}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleSettingsClick}
+          className="transition-transform hover:scale-110"
+        >
+          <Settings className="h-5 w-5" />
         </Button>
 
         <DropdownMenu>
@@ -82,7 +151,7 @@ const DashboardHeader = ({ role }: DashboardHeaderProps) => {
           <DropdownMenuContent align="end" className="w-56 animate-scale-in">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/profile")}>
+            <DropdownMenuItem onClick={handleSettingsClick}>
               <Settings className="mr-2 h-4 w-4" />
               Profile Settings
             </DropdownMenuItem>
