@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,29 +23,92 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useCourses } from "@/hooks/useCourses";
+import { useAttendance } from "@/hooks/useAttendance";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface EnrolledStudent {
+  id: string;
+  full_name: string;
+  student_id: string;
+}
 
 const Attendance = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { courses } = useCourses();
+  const { markAttendance } = useAttendance();
 
-  const courses = [
-    { id: "CS101", name: "Data Structures" },
-    { id: "CS102", name: "Algorithms" },
-    { id: "CS103", name: "Database Systems" },
-  ];
-
-  const students = [
-    { id: "S001", name: "John Doe", rollNumber: "2024001" },
-    { id: "S002", name: "Jane Smith", rollNumber: "2024002" },
-    { id: "S003", name: "Bob Johnson", rollNumber: "2024003" },
-    { id: "S004", name: "Alice Brown", rollNumber: "2024004" },
-    { id: "S005", name: "Charlie Wilson", rollNumber: "2024005" },
-    { id: "S006", name: "Diana Martinez", rollNumber: "2024006" },
-  ];
-
+  const [facultyCourses, setFacultyCourses] = useState<typeof courses>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch faculty's courses
+  useEffect(() => {
+    const fetchFacultyCourses = async () => {
+      if (!user) return;
+
+      const { data: facultyData } = await supabase
+        .from("faculties")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (facultyData) {
+        const filtered = courses.filter(c => c.faculty_id === facultyData.id);
+        setFacultyCourses(filtered);
+      }
+    };
+
+    if (courses.length > 0) {
+      fetchFacultyCourses();
+    }
+  }, [user, courses]);
+
+  // Fetch enrolled students when course is selected
+  useEffect(() => {
+    const fetchEnrolledStudents = async () => {
+      if (!selectedCourse) {
+        setEnrolledStudents([]);
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select(`
+          student_id,
+          students:student_id (
+            id,
+            full_name,
+            student_id
+          )
+        `)
+        .eq("course_id", selectedCourse)
+        .eq("status", "enrolled");
+
+      if (!error && data) {
+        const students = data
+          .filter(e => e.students)
+          .map(e => ({
+            id: (e.students as any).id,
+            full_name: (e.students as any).full_name,
+            student_id: (e.students as any).student_id,
+          }));
+        setEnrolledStudents(students);
+      }
+      setLoading(false);
+    };
+
+    fetchEnrolledStudents();
+    setAttendance({});
+    setSubmitted(false);
+  }, [selectedCourse]);
 
   const handleToggleAttendance = (studentId: string) => {
     setAttendance(prev => ({
@@ -56,13 +119,13 @@ const Attendance = () => {
 
   const handleMarkAll = (status: boolean) => {
     const newAttendance: Record<string, boolean> = {};
-    students.forEach(student => {
+    enrolledStudents.forEach(student => {
       newAttendance[student.id] = status;
     });
     setAttendance(newAttendance);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedCourse) {
       toast({
         title: "Course Required",
@@ -72,21 +135,33 @@ const Attendance = () => {
       return;
     }
 
-    const presentCount = Object.values(attendance).filter(Boolean).length;
-    const totalStudents = students.length;
+    setLoading(true);
+    try {
+      const records = enrolledStudents.map(student => ({
+        student_id: student.id,
+        course_id: selectedCourse,
+        date: selectedDate,
+        status: attendance[student.id] ? "present" : "absent",
+        marked_by: user?.id,
+      }));
 
-    toast({
-      title: "Attendance Submitted",
-      description: `Marked ${presentCount} out of ${totalStudents} students present for ${selectedDate}`,
-    });
-
-    setSubmitted(true);
+      await markAttendance.mutateAsync(records);
+      setSubmitted(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit attendance",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const presentCount = Object.values(attendance).filter(Boolean).length;
-  const absentCount = students.length - presentCount;
-  const attendancePercentage = students.length > 0 
-    ? ((presentCount / students.length) * 100).toFixed(1) 
+  const absentCount = enrolledStudents.length - presentCount;
+  const attendancePercentage = enrolledStudents.length > 0 
+    ? ((presentCount / enrolledStudents.length) * 100).toFixed(1) 
     : 0;
 
   return (
@@ -155,9 +230,9 @@ const Attendance = () => {
                     <SelectValue placeholder="Choose a course" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    {courses.map(course => (
+                    {facultyCourses.map(course => (
                       <SelectItem key={course.id} value={course.id}>
-                        {course.name} ({course.id})
+                        {course.course_name} ({course.course_code})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -200,39 +275,47 @@ const Attendance = () => {
                   </Button>
                 </div>
 
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Roll Number</TableHead>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead className="text-center">Present</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students.map((student) => (
-                        <TableRow key={student.id}>
-                          <TableCell className="font-medium">{student.rollNumber}</TableCell>
-                          <TableCell>{student.name}</TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex justify-center">
-                              <Checkbox
-                                checked={attendance[student.id] || false}
-                                onCheckedChange={() => handleToggleAttendance(student.id)}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={attendance[student.id] ? "default" : "secondary"}>
-                              {attendance[student.id] ? "Present" : "Absent"}
-                            </Badge>
-                          </TableCell>
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading students...</div>
+                ) : enrolledStudents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No students enrolled in this course
+                  </div>
+                ) : (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Roll Number</TableHead>
+                          <TableHead>Student Name</TableHead>
+                          <TableHead className="text-center">Present</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {enrolledStudents.map((student) => (
+                          <TableRow key={student.id}>
+                            <TableCell className="font-medium">{student.student_id}</TableCell>
+                            <TableCell>{student.full_name}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center">
+                                <Checkbox
+                                  checked={attendance[student.id] || false}
+                                  onCheckedChange={() => handleToggleAttendance(student.id)}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={attendance[student.id] ? "default" : "secondary"}>
+                                {attendance[student.id] ? "Present" : "Absent"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2">
                   <Button
@@ -244,7 +327,7 @@ const Attendance = () => {
                   >
                     Clear All
                   </Button>
-                  <Button onClick={handleSubmit} disabled={submitted}>
+                  <Button onClick={handleSubmit} disabled={submitted || loading || enrolledStudents.length === 0}>
                     <Save className="h-4 w-4 mr-2" />
                     {submitted ? "Submitted" : "Submit Attendance"}
                   </Button>

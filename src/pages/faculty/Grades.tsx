@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,15 +22,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useCourses } from "@/hooks/useCourses";
+import { useGrades } from "@/hooks/useGrades";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface EnrolledStudent {
+  id: string;
+  full_name: string;
+  student_id: string;
+}
 
 const Grades = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { courses, isLoading: coursesLoading } = useCourses();
+  const { createGrade } = useGrades();
 
-  const courses = [
-    { id: "CS101", name: "Data Structures" },
-    { id: "CS102", name: "Algorithms" },
-    { id: "CS103", name: "Database Systems" },
-  ];
+  const [facultyCourses, setFacultyCourses] = useState<typeof courses>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedAssessment, setSelectedAssessment] = useState("");
+  const [grades, setGrades] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const assessmentTypes = [
     { id: "midterm", name: "Midterm Exam", maxMarks: 100 },
@@ -42,24 +57,71 @@ const Grades = () => {
     { id: "quiz2", name: "Quiz 2", maxMarks: 25 },
   ];
 
-  const students = [
-    { id: "S001", name: "John Doe", rollNumber: "2024001" },
-    { id: "S002", name: "Jane Smith", rollNumber: "2024002" },
-    { id: "S003", name: "Bob Johnson", rollNumber: "2024003" },
-    { id: "S004", name: "Alice Brown", rollNumber: "2024004" },
-    { id: "S005", name: "Charlie Wilson", rollNumber: "2024005" },
-    { id: "S006", name: "Diana Martinez", rollNumber: "2024006" },
-  ];
+  // Fetch faculty's courses
+  useEffect(() => {
+    const fetchFacultyCourses = async () => {
+      if (!user) return;
 
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedAssessment, setSelectedAssessment] = useState("");
-  const [grades, setGrades] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+      const { data: facultyData } = await supabase
+        .from("faculties")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (facultyData) {
+        const filtered = courses.filter(c => c.faculty_id === facultyData.id);
+        setFacultyCourses(filtered);
+      }
+    };
+
+    if (courses.length > 0) {
+      fetchFacultyCourses();
+    }
+  }, [user, courses]);
+
+  // Fetch enrolled students when course is selected
+  useEffect(() => {
+    const fetchEnrolledStudents = async () => {
+      if (!selectedCourse) {
+        setEnrolledStudents([]);
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select(`
+          student_id,
+          students:student_id (
+            id,
+            full_name,
+            student_id
+          )
+        `)
+        .eq("course_id", selectedCourse)
+        .eq("status", "enrolled");
+
+      if (!error && data) {
+        const students = data
+          .filter(e => e.students)
+          .map(e => ({
+            id: (e.students as any).id,
+            full_name: (e.students as any).full_name,
+            student_id: (e.students as any).student_id,
+          }));
+        setEnrolledStudents(students);
+      }
+      setLoading(false);
+    };
+
+    fetchEnrolledStudents();
+    setGrades({});
+    setSubmitted(false);
+  }, [selectedCourse]);
 
   const selectedAssessmentData = assessmentTypes.find(a => a.id === selectedAssessment);
 
   const handleGradeChange = (studentId: string, value: string) => {
-    // Validate grade is within max marks
     const numValue = parseFloat(value);
     const maxMarks = selectedAssessmentData?.maxMarks || 100;
     
@@ -71,7 +133,7 @@ const Grades = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedCourse || !selectedAssessment) {
       toast({
         title: "Selection Required",
@@ -81,8 +143,7 @@ const Grades = () => {
       return;
     }
 
-    // Validate all grades are entered
-    const missingGrades = students.filter(s => !grades[s.id] || grades[s.id] === "");
+    const missingGrades = enrolledStudents.filter(s => !grades[s.id] || grades[s.id] === "");
     if (missingGrades.length > 0) {
       toast({
         title: "Incomplete Grades",
@@ -92,12 +153,37 @@ const Grades = () => {
       return;
     }
 
-    toast({
-      title: "Grades Submitted",
-      description: `Grades have been recorded for ${selectedAssessmentData?.name}`,
-    });
+    setLoading(true);
+    try {
+      for (const student of enrolledStudents) {
+        const marks = parseFloat(grades[student.id]);
+        const maxMarks = selectedAssessmentData?.maxMarks || 100;
+        
+        await createGrade.mutateAsync({
+          student_id: student.id,
+          course_id: selectedCourse,
+          assessment_type: selectedAssessment,
+          assessment_name: selectedAssessmentData?.name || selectedAssessment,
+          obtained_marks: marks,
+          max_marks: maxMarks,
+          entered_by: user?.id,
+        });
+      }
 
-    setSubmitted(true);
+      toast({
+        title: "Grades Submitted",
+        description: `Grades have been recorded for ${selectedAssessmentData?.name}`,
+      });
+      setSubmitted(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit grades",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getGradeColor = (marks: string) => {
@@ -210,9 +296,9 @@ const Grades = () => {
                     <SelectValue placeholder="Choose a course" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    {courses.map(course => (
+                    {facultyCourses.map(course => (
                       <SelectItem key={course.id} value={course.id}>
-                        {course.name} ({course.id})
+                        {course.course_name} ({course.course_code})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -248,59 +334,67 @@ const Grades = () => {
                   </p>
                 </div>
 
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Roll Number</TableHead>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead>Marks Obtained</TableHead>
-                        <TableHead>Grade</TableHead>
-                        <TableHead className="text-right">Percentage</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students.map((student) => {
-                        const marks = grades[student.id] || "";
-                        const percentage = marks 
-                          ? ((parseFloat(marks) / (selectedAssessmentData?.maxMarks || 100)) * 100).toFixed(1)
-                          : "-";
-                        const gradeLetter = marks ? getGradeLetter(marks) : "-";
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading students...</div>
+                ) : enrolledStudents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No students enrolled in this course
+                  </div>
+                ) : (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Roll Number</TableHead>
+                          <TableHead>Student Name</TableHead>
+                          <TableHead>Marks Obtained</TableHead>
+                          <TableHead>Grade</TableHead>
+                          <TableHead className="text-right">Percentage</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {enrolledStudents.map((student) => {
+                          const marks = grades[student.id] || "";
+                          const percentage = marks 
+                            ? ((parseFloat(marks) / (selectedAssessmentData?.maxMarks || 100)) * 100).toFixed(1)
+                            : "-";
+                          const gradeLetter = marks ? getGradeLetter(marks) : "-";
 
-                        return (
-                          <TableRow key={student.id}>
-                            <TableCell className="font-medium">{student.rollNumber}</TableCell>
-                            <TableCell>{student.name}</TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={selectedAssessmentData?.maxMarks}
-                                step="0.5"
-                                value={marks}
-                                onChange={(e) => handleGradeChange(student.id, e.target.value)}
-                                placeholder="0"
-                                className="w-24"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {marks && (
-                                <Badge variant="outline" className={getGradeColor(marks)}>
-                                  {gradeLetter}
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={marks ? getGradeColor(marks) : ""}>
-                                {percentage}%
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                          return (
+                            <TableRow key={student.id}>
+                              <TableCell className="font-medium">{student.student_id}</TableCell>
+                              <TableCell>{student.full_name}</TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={selectedAssessmentData?.maxMarks}
+                                  step="0.5"
+                                  value={marks}
+                                  onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                                  placeholder="0"
+                                  className="w-24"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {marks && (
+                                  <Badge variant="outline" className={getGradeColor(marks)}>
+                                    {gradeLetter}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={marks ? getGradeColor(marks) : ""}>
+                                  {percentage}%
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2">
                   <Button
@@ -312,7 +406,7 @@ const Grades = () => {
                   >
                     Clear All
                   </Button>
-                  <Button onClick={handleSubmit} disabled={submitted}>
+                  <Button onClick={handleSubmit} disabled={submitted || loading || enrolledStudents.length === 0}>
                     <Save className="h-4 w-4 mr-2" />
                     {submitted ? "Submitted" : "Submit Grades"}
                   </Button>
