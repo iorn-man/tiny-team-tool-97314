@@ -27,138 +27,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-
-interface AuditLog {
-  id: string;
-  timestamp: Date;
-  user: string;
-  role: string;
-  action: string;
-  resource: string;
-  details: string;
-  ipAddress: string;
-  status: "success" | "failed";
-}
+import { useAuditLogs } from "@/hooks/useAuditLogs";
+import { LoadingSkeleton } from "@/components/shared";
 
 const AuditLogs = () => {
-  // Mock data
-  const [logs, setLogs] = useState<AuditLog[]>([
-    {
-      id: "AL001",
-      timestamp: new Date("2024-03-15T10:30:00"),
-      user: "admin@institute.com",
-      role: "Admin",
-      action: "CREATE",
-      resource: "Student",
-      details: "Created new student record: John Doe (EN2024001)",
-      ipAddress: "192.168.1.100",
-      status: "success",
-    },
-    {
-      id: "AL002",
-      timestamp: new Date("2024-03-15T10:25:00"),
-      user: "faculty@institute.com",
-      role: "Faculty",
-      action: "UPDATE",
-      resource: "Attendance",
-      details: "Marked attendance for CSE101 - 30 students present",
-      ipAddress: "192.168.1.105",
-      status: "success",
-    },
-    {
-      id: "AL003",
-      timestamp: new Date("2024-03-15T10:20:00"),
-      user: "admin@institute.com",
-      role: "Admin",
-      action: "DELETE",
-      resource: "Course",
-      details: "Deleted course: Advanced Algorithms (CS401)",
-      ipAddress: "192.168.1.100",
-      status: "success",
-    },
-    {
-      id: "AL004",
-      timestamp: new Date("2024-03-15T10:15:00"),
-      user: "student@institute.com",
-      role: "Student",
-      action: "LOGIN",
-      resource: "Authentication",
-      details: "User login failed - invalid credentials",
-      ipAddress: "192.168.1.120",
-      status: "failed",
-    },
-    {
-      id: "AL005",
-      timestamp: new Date("2024-03-15T10:10:00"),
-      user: "faculty@institute.com",
-      role: "Faculty",
-      action: "CREATE",
-      resource: "Announcement",
-      details: "Posted announcement: Midterm exam schedule updated",
-      ipAddress: "192.168.1.105",
-      status: "success",
-    },
-    {
-      id: "AL006",
-      timestamp: new Date("2024-03-15T10:05:00"),
-      user: "admin@institute.com",
-      role: "Admin",
-      action: "UPDATE",
-      resource: "Faculty",
-      details: "Updated faculty profile: Dr. Smith - Department changed to CS",
-      ipAddress: "192.168.1.100",
-      status: "success",
-    },
-    {
-      id: "AL007",
-      timestamp: new Date("2024-03-15T10:00:00"),
-      user: "student@institute.com",
-      role: "Student",
-      action: "VIEW",
-      resource: "Grades",
-      details: "Accessed grade report for semester 2024-1",
-      ipAddress: "192.168.1.121",
-      status: "success",
-    },
-    {
-      id: "AL008",
-      timestamp: new Date("2024-03-15T09:55:00"),
-      user: "faculty@institute.com",
-      role: "Faculty",
-      action: "UPDATE",
-      resource: "Grades",
-      details: "Updated grades for CSE202 - Assignment 3",
-      ipAddress: "192.168.1.105",
-      status: "success",
-    },
-  ]);
+  const { logs, isLoading } = useAuditLogs();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterUser, setFilterUser] = useState("all");
   const [filterAction, setFilterAction] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterTable, setFilterTable] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // Filter and search logic
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const matchesSearch =
-        log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchQuery.toLowerCase());
+        log.table_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.record_id && log.record_id.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchesUser = filterUser === "all" || log.role === filterUser;
       const matchesAction = filterAction === "all" || log.action === filterAction;
-      const matchesStatus = filterStatus === "all" || log.status === filterStatus;
+      const matchesTable = filterTable === "all" || log.table_name === filterTable;
 
-      return matchesSearch && matchesUser && matchesAction && matchesStatus;
+      return matchesSearch && matchesAction && matchesTable;
     });
-  }, [logs, searchQuery, filterUser, filterAction, filterStatus]);
+  }, [logs, searchQuery, filterAction, filterTable]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -170,16 +67,26 @@ const AuditLogs = () => {
   // Reset to page 1 when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterUser, filterAction, filterStatus]);
+  }, [searchQuery, filterAction, filterTable]);
 
-  const handleViewDetails = (log: AuditLog) => {
+  const handleViewDetails = (log: any) => {
     setSelectedLog(log);
     setDetailDialogOpen(true);
   };
 
-  const roles = ["Admin", "Faculty", "Student"];
-  const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "LOGIN", "LOGOUT"];
-  const statuses = ["success", "failed"];
+  const getActionBadge = (action: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive"> = {
+      INSERT: "default",
+      UPDATE: "secondary",
+      DELETE: "destructive",
+    };
+    return variants[action] || "secondary";
+  };
+
+  const actions = ["INSERT", "UPDATE", "DELETE"];
+  const tables = [...new Set(logs.map((log) => log.table_name))];
+
+  if (isLoading) return <DashboardLayout role="admin"><LoadingSkeleton /></DashboardLayout>;
 
   return (
     <DashboardLayout role="admin">
@@ -196,7 +103,7 @@ const AuditLogs = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by user, action, resource, or details..."
+                placeholder="Search by action, table, or record ID..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -209,24 +116,7 @@ const AuditLogs = () => {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/50 animate-fade-in">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">User Role</label>
-                <Select value={filterUser} onValueChange={setFilterUser}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="all">All Roles</SelectItem>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50 animate-fade-in">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Action Type</label>
                 <Select value={filterAction} onValueChange={setFilterAction}>
@@ -245,16 +135,16 @@ const AuditLogs = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <label className="text-sm font-medium">Table</label>
+                <Select value={filterTable} onValueChange={setFilterTable}>
                   <SelectTrigger className="bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    {statuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                    <SelectItem value="all">All Tables</SelectItem>
+                    {tables.map((table) => (
+                      <SelectItem key={table} value={table}>
+                        {table}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -269,18 +159,16 @@ const AuditLogs = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Timestamp</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Action</TableHead>
-                <TableHead>Resource</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Table</TableHead>
+                <TableHead>Record ID</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No logs found matching your criteria
                   </TableCell>
                 </TableRow>
@@ -288,30 +176,16 @@ const AuditLogs = () => {
                 paginatedLogs.map((log) => (
                   <TableRow key={log.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">
-                      {format(log.timestamp, "MMM dd, yyyy HH:mm:ss")}
-                    </TableCell>
-                    <TableCell>{log.user}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{log.role}</Badge>
+                      {format(new Date(log.created_at), "MMM dd, yyyy HH:mm:ss")}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          log.action === "DELETE"
-                            ? "destructive"
-                            : log.action === "CREATE"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
+                      <Badge variant={getActionBadge(log.action)}>
                         {log.action}
                       </Badge>
                     </TableCell>
-                    <TableCell>{log.resource}</TableCell>
-                    <TableCell>
-                      <Badge variant={log.status === "success" ? "default" : "destructive"}>
-                        {log.status}
-                      </Badge>
+                    <TableCell>{log.table_name}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {log.record_id ? log.record_id.slice(0, 8) + "..." : "-"}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end">
@@ -367,13 +241,13 @@ const AuditLogs = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm">
-                Page {currentPage} of {totalPages}
+                Page {currentPage} of {totalPages || 1}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || totalPages === 0}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -399,52 +273,45 @@ const AuditLogs = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
-                  <p className="text-sm">{format(selectedLog.timestamp, "PPpp")}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">User</p>
-                  <p className="text-sm">{selectedLog.user}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Role</p>
-                  <p className="text-sm">{selectedLog.role}</p>
+                  <p className="text-sm">{format(new Date(selectedLog.created_at), "PPpp")}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Action</p>
-                  <Badge
-                    variant={
-                      selectedLog.action === "DELETE"
-                        ? "destructive"
-                        : selectedLog.action === "CREATE"
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
+                  <Badge variant={getActionBadge(selectedLog.action)}>
                     {selectedLog.action}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Resource</p>
-                  <p className="text-sm">{selectedLog.resource}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Table</p>
+                  <p className="text-sm">{selectedLog.table_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge
-                    variant={selectedLog.status === "success" ? "default" : "destructive"}
-                  >
-                    {selectedLog.status}
-                  </Badge>
+                  <p className="text-sm font-medium text-muted-foreground">Record ID</p>
+                  <p className="text-sm font-mono">{selectedLog.record_id || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">IP Address</p>
-                  <p className="text-sm font-mono">{selectedLog.ipAddress}</p>
+                  <p className="text-sm font-mono">{selectedLog.ip_address || "-"}</p>
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Details</p>
-                <p className="text-sm p-3 bg-muted rounded-lg">{selectedLog.details}</p>
-              </div>
+              {selectedLog.old_values && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Old Values</p>
+                  <pre className="text-xs p-3 bg-muted rounded-lg overflow-x-auto">
+                    {JSON.stringify(selectedLog.old_values, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedLog.new_values && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">New Values</p>
+                  <pre className="text-xs p-3 bg-muted rounded-lg overflow-x-auto">
+                    {JSON.stringify(selectedLog.new_values, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

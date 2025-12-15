@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Search, MessageSquare, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { useFeedback } from "@/hooks/useFeedback";
+import { useStudents } from "@/hooks/useStudents";
+import { LoadingSkeleton } from "@/components/shared";
+import { format } from "date-fns";
 
 const Feedback = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,40 +21,18 @@ const Feedback = () => {
   const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
   const [response, setResponse] = useState("");
 
-  // Mock feedback data
-  const feedbacks = [
-    {
-      id: 1,
-      studentName: "John Doe",
-      email: "john@example.com",
-      type: "Complaint",
-      subject: "Classroom facility issue",
-      message: "The air conditioning in Room 101 is not working properly.",
-      status: "pending",
-      submittedAt: "2025-01-10 10:30 AM",
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      email: "jane@example.com",
-      type: "Feedback",
-      subject: "Course suggestion",
-      message: "Would like to see more courses on machine learning.",
-      status: "resolved",
-      submittedAt: "2025-01-09 02:15 PM",
-      response: "Thank you for your feedback. We will consider adding ML courses next semester.",
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      email: "mike@example.com",
-      type: "Complaint",
-      subject: "Cafeteria service",
-      message: "Long waiting times during lunch hours.",
-      status: "in_progress",
-      submittedAt: "2025-01-08 11:00 AM",
-    },
-  ];
+  const { feedbacks, isLoading, updateFeedback } = useFeedback();
+  const { students } = useStudents();
+
+  const getStudentName = (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    return student ? student.full_name : "Unknown Student";
+  };
+
+  const getStudentEmail = (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    return student ? student.email : "";
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
@@ -70,27 +52,40 @@ const Feedback = () => {
   };
 
   const filteredFeedback = feedbacks.filter((fb) => {
-    const matchesSearch = fb.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const studentName = getStudentName(fb.student_id);
+    const matchesSearch = studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fb.subject.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || fb.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const handleSubmitResponse = () => {
-    toast({
-      title: "Response Submitted",
-      description: "Your response has been sent to the student.",
+    if (!selectedFeedback || !response.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a response",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateFeedback.mutate({
+      id: selectedFeedback.id,
+      admin_response: response,
+      status: "resolved" as const,
     });
     setResponse("");
     setSelectedFeedback(null);
   };
 
-  const handleUpdateStatus = (feedbackId: number, newStatus: string) => {
-    toast({
-      title: "Status Updated",
-      description: `Feedback status changed to ${newStatus.replace("_", " ")}.`,
+  const handleUpdateStatus = (feedbackId: string, newStatus: string) => {
+    updateFeedback.mutate({
+      id: feedbackId,
+      status: newStatus as "pending" | "in_progress" | "resolved" | "closed",
     });
   };
+
+  if (isLoading) return <DashboardLayout role="admin"><LoadingSkeleton /></DashboardLayout>;
 
   return (
     <DashboardLayout role="admin">
@@ -103,7 +98,7 @@ const Feedback = () => {
         <Card>
           <CardHeader>
             <CardTitle>All Feedback</CardTitle>
-            <CardDescription>View and respond to student feedback</CardDescription>
+            <CardDescription>View and respond to student feedback ({filteredFeedback.length} items)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 mb-6">
@@ -142,115 +137,127 @@ const Feedback = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFeedback.map((feedback) => (
-                  <TableRow key={feedback.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{feedback.studentName}</p>
-                        <p className="text-sm text-muted-foreground">{feedback.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={feedback.type === "Complaint" ? "destructive" : "secondary"}>
-                        {feedback.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{feedback.subject}</TableCell>
-                    <TableCell>{getStatusBadge(feedback.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{feedback.submittedAt}</TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedFeedback(feedback)}
-                          >
-                            View Details
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Feedback Details</DialogTitle>
-                            <DialogDescription>
-                              View feedback details and respond
-                            </DialogDescription>
-                          </DialogHeader>
-                          {selectedFeedback && (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm font-medium">Student</p>
-                                  <p className="text-sm text-muted-foreground">{selectedFeedback.studentName}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium">Type</p>
-                                  <Badge variant={selectedFeedback.type === "Complaint" ? "destructive" : "secondary"}>
-                                    {selectedFeedback.type}
-                                  </Badge>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium">Status</p>
-                                  {getStatusBadge(selectedFeedback.status)}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium">Submitted</p>
-                                  <p className="text-sm text-muted-foreground">{selectedFeedback.submittedAt}</p>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium mb-1">Subject</p>
-                                <p className="text-sm text-muted-foreground">{selectedFeedback.subject}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium mb-1">Message</p>
-                                <p className="text-sm text-muted-foreground">{selectedFeedback.message}</p>
-                              </div>
-                              {selectedFeedback.response && (
-                                <div>
-                                  <p className="text-sm font-medium mb-1">Response</p>
-                                  <p className="text-sm text-muted-foreground">{selectedFeedback.response}</p>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-sm font-medium mb-2">Update Status</p>
-                                <Select
-                                  defaultValue={selectedFeedback.status}
-                                  onValueChange={(value) => handleUpdateStatus(selectedFeedback.id, value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="resolved">Resolved</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium mb-2">Add Response</p>
-                                <Textarea
-                                  placeholder="Type your response here..."
-                                  value={response}
-                                  onChange={(e) => setResponse(e.target.value)}
-                                  rows={4}
-                                />
-                              </div>
-                            </div>
-                          )}
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setSelectedFeedback(null)}>
-                              Close
-                            </Button>
-                            <Button onClick={handleSubmitResponse}>Submit Response</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                {filteredFeedback.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      No feedback found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredFeedback.map((feedback) => (
+                    <TableRow key={feedback.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{getStudentName(feedback.student_id)}</p>
+                          <p className="text-sm text-muted-foreground">{getStudentEmail(feedback.student_id)}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={feedback.category === "complaint" ? "destructive" : "secondary"}>
+                          {feedback.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{feedback.subject}</TableCell>
+                      <TableCell>{getStatusBadge(feedback.status || "pending")}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {feedback.created_at ? format(new Date(feedback.created_at), "MMM d, yyyy HH:mm") : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedFeedback(feedback)}
+                            >
+                              View Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Feedback Details</DialogTitle>
+                              <DialogDescription>
+                                View feedback details and respond
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedFeedback && (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-sm font-medium">Student</p>
+                                    <p className="text-sm text-muted-foreground">{getStudentName(selectedFeedback.student_id)}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Type</p>
+                                    <Badge variant={selectedFeedback.category === "complaint" ? "destructive" : "secondary"}>
+                                      {selectedFeedback.category}
+                                    </Badge>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Status</p>
+                                    {getStatusBadge(selectedFeedback.status || "pending")}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">Submitted</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {selectedFeedback.created_at ? format(new Date(selectedFeedback.created_at), "MMM d, yyyy HH:mm") : "-"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium mb-1">Subject</p>
+                                  <p className="text-sm text-muted-foreground">{selectedFeedback.subject}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium mb-1">Message</p>
+                                  <p className="text-sm text-muted-foreground">{selectedFeedback.description}</p>
+                                </div>
+                                {selectedFeedback.admin_response && (
+                                  <div>
+                                    <p className="text-sm font-medium mb-1">Response</p>
+                                    <p className="text-sm text-muted-foreground">{selectedFeedback.admin_response}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium mb-2">Update Status</p>
+                                  <Select
+                                    defaultValue={selectedFeedback.status || "pending"}
+                                    onValueChange={(value) => handleUpdateStatus(selectedFeedback.id, value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="pending">Pending</SelectItem>
+                                      <SelectItem value="in_progress">In Progress</SelectItem>
+                                      <SelectItem value="resolved">Resolved</SelectItem>
+                                      <SelectItem value="rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium mb-2">Add Response</p>
+                                  <Textarea
+                                    placeholder="Type your response here..."
+                                    value={response}
+                                    onChange={(e) => setResponse(e.target.value)}
+                                    rows={4}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setSelectedFeedback(null)}>
+                                Close
+                              </Button>
+                              <Button onClick={handleSubmitResponse}>Submit Response</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

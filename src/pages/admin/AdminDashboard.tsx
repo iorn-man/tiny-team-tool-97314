@@ -5,9 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartWrapper } from "@/components/shared/ChartWrapper";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useRecentActivities } from "@/hooks/useRecentActivities";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const { data: dashboardStats, isLoading } = useDashboardStats();
+  const { activities } = useRecentActivities();
+  const navigate = useNavigate();
 
   const stats = [
     { title: "Total Students", value: dashboardStats?.totalStudents.toString() || "0", icon: Users },
@@ -16,11 +20,22 @@ const AdminDashboard = () => {
     { title: "Pending Feedback", value: dashboardStats?.pendingFeedback.toString() || "0", icon: MessageSquare },
   ];
 
-  const recentActivities = [
-    { action: "New student enrolled", name: "John Doe", time: "5 minutes ago" },
-    { action: "Attendance marked", name: "Dr. Smith", time: "10 minutes ago" },
-    { action: "Grade submitted", name: "Prof. Johnson", time: "1 hour ago" },
-    { action: "New announcement posted", name: "Admin", time: "2 hours ago" },
+  const quickActions = [
+    { 
+      title: "Add New Student", 
+      description: "Register a new student",
+      action: () => navigate("/admin/students")
+    },
+    { 
+      title: "Create Announcement", 
+      description: "Post a new announcement",
+      action: () => navigate("/admin/announcements")
+    },
+    { 
+      title: "View Reports", 
+      description: "Generate system reports",
+      action: () => navigate("/admin/reports")
+    },
   ];
 
   // Mock data for charts
@@ -67,16 +82,20 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                    <div className="h-2 w-2 rounded-full bg-primary mt-2" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">{activity.name}</p>
+                {activities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No recent activities</p>
+                ) : (
+                  activities.slice(0, 6).map((activity, index) => (
+                    <div key={index} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                      <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{activity.action}</p>
+                        <p className="text-sm text-muted-foreground">{activity.name}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{activity.time}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{activity.time}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -88,18 +107,16 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-2">
-                <button className="p-3 text-left rounded-lg border hover:bg-muted/50 transition-colors">
-                  <p className="font-medium">Add New Student</p>
-                  <p className="text-sm text-muted-foreground">Register a new student</p>
-                </button>
-                <button className="p-3 text-left rounded-lg border hover:bg-muted/50 transition-colors">
-                  <p className="font-medium">Create Announcement</p>
-                  <p className="text-sm text-muted-foreground">Post a new announcement</p>
-                </button>
-                <button className="p-3 text-left rounded-lg border hover:bg-muted/50 transition-colors">
-                  <p className="font-medium">View Reports</p>
-                  <p className="text-sm text-muted-foreground">Generate system reports</p>
-                </button>
+                {quickActions.map((action, index) => (
+                  <button 
+                    key={index}
+                    className="p-3 text-left rounded-lg border hover:bg-muted/50 transition-colors"
+                    onClick={action.action}
+                  >
+                    <p className="font-medium">{action.title}</p>
+                    <p className="text-sm text-muted-foreground">{action.description}</p>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
