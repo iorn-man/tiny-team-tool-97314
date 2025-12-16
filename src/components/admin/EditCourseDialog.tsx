@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useFaculty } from "@/hooks/useFaculty";
 
 interface EditCourseDialogProps {
   open: boolean;
@@ -14,49 +14,45 @@ interface EditCourseDialogProps {
 }
 
 export function EditCourseDialog({ open, onOpenChange, course, onEdit }: EditCourseDialogProps) {
-  const { toast } = useToast();
+  const { faculty: facultyList, isLoading: facultyLoading } = useFaculty();
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
+    course_code: "",
+    course_name: "",
+    description: "",
     credits: "",
-    facultyId: "",
+    department: "",
     semester: "",
+    faculty_id: "",
     status: "active",
   });
-
-  const facultyList = [
-    { id: "F001", name: "Dr. John Smith" },
-    { id: "F002", name: "Dr. Sarah Johnson" },
-    { id: "F003", name: "Prof. Michael Brown" },
-  ];
 
   useEffect(() => {
     if (course) {
       setFormData({
-        code: course.code,
-        name: course.name,
-        credits: String(course.credits),
-        facultyId: course.facultyId,
-        semester: course.semester,
-        status: course.status,
+        course_code: course.course_code || "",
+        course_name: course.course_name || "",
+        description: course.description || "",
+        credits: String(course.credits || ""),
+        department: course.department || "",
+        semester: String(course.semester || ""),
+        faculty_id: course.faculty_id || "",
+        status: course.status || "active",
       });
     }
   }, [course]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const selectedFaculty = facultyList.find(f => f.id === formData.facultyId);
     
     onEdit({
-      ...formData,
-      credits: parseInt(formData.credits),
-      faculty: selectedFaculty?.name || "",
-    });
-
-    toast({
-      title: "Course Updated",
-      description: `${formData.name} has been updated successfully`,
+      course_code: formData.course_code,
+      course_name: formData.course_name,
+      description: formData.description || null,
+      credits: parseInt(formData.credits) || 0,
+      department: formData.department || null,
+      semester: parseInt(formData.semester) || null,
+      faculty_id: formData.faculty_id || null,
+      status: formData.status,
     });
 
     onOpenChange(false);
@@ -75,8 +71,8 @@ export function EditCourseDialog({ open, onOpenChange, course, onEdit }: EditCou
             <Label htmlFor="edit-code">Course Code</Label>
             <Input
               id="edit-code"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              value={formData.course_code}
+              onChange={(e) => setFormData({ ...formData, course_code: e.target.value })}
               required
             />
           </div>
@@ -85,9 +81,18 @@ export function EditCourseDialog({ open, onOpenChange, course, onEdit }: EditCou
             <Label htmlFor="edit-name">Course Name</Label>
             <Input
               id="edit-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.course_name}
+              onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-description">Description</Label>
+            <Input
+              id="edit-description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
 
@@ -105,32 +110,44 @@ export function EditCourseDialog({ open, onOpenChange, course, onEdit }: EditCou
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-faculty">Assign Faculty</Label>
-            <Select
-              value={formData.facultyId}
-              onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {facultyList.map((faculty) => (
-                  <SelectItem key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="edit-department">Department</Label>
+            <Input
+              id="edit-department"
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-semester">Semester</Label>
             <Input
               id="edit-semester"
+              type="number"
+              min="1"
+              max="8"
               value={formData.semester}
               onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-              required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-faculty">Assign Faculty</Label>
+            <Select
+              value={formData.faculty_id}
+              onValueChange={(value) => setFormData({ ...formData, faculty_id: value === "none" ? "" : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={facultyLoading ? "Loading..." : "Select faculty"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {facultyList.map((faculty) => (
+                  <SelectItem key={faculty.id} value={faculty.id}>
+                    {faculty.full_name} ({faculty.faculty_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
