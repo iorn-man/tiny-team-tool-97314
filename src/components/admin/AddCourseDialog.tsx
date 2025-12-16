@@ -168,13 +168,13 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
             <Label htmlFor="faculty_id">Assign Faculty (Optional)</Label>
             <Select
               value={formData.faculty_id}
-              onValueChange={(value) => setFormData({ ...formData, faculty_id: value })}
+              onValueChange={(value) => setFormData({ ...formData, faculty_id: value === "none" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder={facultyLoading ? "Loading..." : "Select faculty member"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {facultyList.map((faculty) => (
                   <SelectItem key={faculty.id} value={faculty.id}>
                     {faculty.full_name} ({faculty.faculty_id})
