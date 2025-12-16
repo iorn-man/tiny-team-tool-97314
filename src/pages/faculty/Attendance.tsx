@@ -141,7 +141,7 @@ const Attendance = () => {
         student_id: student.id,
         course_id: selectedCourse,
         date: selectedDate,
-        status: attendance[student.id] ? "present" : "absent",
+        status: (attendance[student.id] ? "present" : "absent") as "present" | "absent" | "late" | "excused",
         marked_by: user?.id,
       }));
 
