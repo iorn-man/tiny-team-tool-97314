@@ -107,27 +107,15 @@ const Enrollments = () => {
       return;
     }
 
-    // Check if already enrolled
-    const existing = enrollments.find((e: any) => 
-      e.student_id === formData.studentId && e.course_id === formData.courseId && e.status === "enrolled"
-    );
-
-    if (existing) {
-      toast({
-        title: "Already Enrolled",
-        description: "This student is already enrolled in this course",
-        variant: "destructive",
-      });
-      return;
-    }
-
     createEnrollment.mutate({
       student_id: formData.studentId,
       course_id: formData.courseId,
+    }, {
+      onSuccess: () => {
+        setFormData({ studentId: "", courseId: "" });
+        setAddDialogOpen(false);
+      }
     });
-    
-    setFormData({ studentId: "", courseId: "" });
-    setAddDialogOpen(false);
   };
 
   const handleUnenroll = () => {
