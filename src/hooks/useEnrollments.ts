@@ -36,6 +36,30 @@ export const useEnrollments = () => {
 
   const createEnrollment = useMutation({
     mutationFn: async (newEnrollment: { student_id: string; course_id: string }) => {
+      // First check if enrollment already exists (including dropped)
+      const { data: existing } = await supabase
+        .from("enrollments")
+        .select("id, status")
+        .eq("student_id", newEnrollment.student_id)
+        .eq("course_id", newEnrollment.course_id)
+        .maybeSingle();
+
+      if (existing) {
+        if (existing.status === "enrolled") {
+          throw new Error("Student is already enrolled in this course");
+        }
+        // Re-enroll by updating status
+        const { data, error } = await supabase
+          .from("enrollments")
+          .update({ status: "enrolled", enrollment_date: new Date().toISOString().split('T')[0] })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
+      // Create new enrollment
       const { data, error } = await supabase
         .from("enrollments")
         .insert([{ ...newEnrollment, status: "enrolled" }])
