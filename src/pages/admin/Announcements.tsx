@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, Bell } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Bell, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,51 +32,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAnnouncements, Announcement } from "@/hooks/useAnnouncements";
+import { LoadingSkeleton } from "@/components/shared";
+import { Checkbox } from "@/components/ui/checkbox";
+import { format } from "date-fns";
 
 const Announcements = () => {
-  const { toast } = useToast();
-
-  const [announcements, setAnnouncements] = useState([
-    {
-      id: "A001",
-      title: "Mid-term Examination Schedule",
-      content: "The mid-term examinations will be conducted from November 15-20, 2024. Students are advised to check the detailed schedule on the notice board.",
-      targetAudience: "All Students",
-      priority: "High",
-      createdBy: "Admin",
-      createdAt: "2024-11-01",
-    },
-    {
-      id: "A002",
-      title: "Holiday Notice",
-      content: "The institute will remain closed on November 10, 2024 on account of a public holiday.",
-      targetAudience: "Everyone",
-      priority: "Medium",
-      createdBy: "Admin",
-      createdAt: "2024-10-28",
-    },
-    {
-      id: "A003",
-      title: "Workshop on AI and Machine Learning",
-      content: "A two-day workshop on AI and ML will be conducted on November 12-13, 2024. Interested students can register at the CS department office.",
-      targetAudience: "CS Students",
-      priority: "Medium",
-      createdBy: "Admin",
-      createdAt: "2024-10-25",
-    },
-  ]);
+  const { announcements, isLoading, createAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    targetAudience: "Everyone",
-    priority: "Medium",
+    target_audience: ["all"] as string[],
+    priority: "normal" as "low" | "normal" | "high" | "urgent",
+    published: true,
+    expires_at: "",
   });
 
   const filteredAnnouncements = useMemo(() => {
@@ -87,93 +62,109 @@ const Announcements = () => {
     );
   }, [announcements, searchQuery]);
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.title || !formData.content) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newAnnouncement = {
-      id: `A${String(announcements.length + 1).padStart(3, '0')}`,
-      ...formData,
-      createdBy: "Admin",
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    setAnnouncements([newAnnouncement, ...announcements]);
-    setFormData({ title: "", content: "", targetAudience: "Everyone", priority: "Medium" });
-    setAddDialogOpen(false);
-
-    toast({
-      title: "Announcement Created",
-      description: "Your announcement has been published successfully",
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      content: "",
+      target_audience: ["all"],
+      priority: "normal",
+      published: true,
+      expires_at: "",
     });
   };
 
-  const handleEdit = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    await createAnnouncement.mutateAsync({
+      title: formData.title,
+      content: formData.content,
+      target_audience: formData.target_audience,
+      priority: formData.priority,
+      published: formData.published,
+      expires_at: formData.expires_at || undefined,
+    });
 
-    if (!formData.title || !formData.content) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    resetForm();
+    setAddDialogOpen(false);
+  };
 
-    setAnnouncements(announcements.map(a =>
-      a.id === selectedAnnouncement.id
-        ? { ...a, ...formData }
-        : a
-    ));
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAnnouncement) return;
+
+    await updateAnnouncement.mutateAsync({
+      id: selectedAnnouncement.id,
+      title: formData.title,
+      content: formData.content,
+      target_audience: formData.target_audience,
+      priority: formData.priority,
+      published: formData.published,
+      expires_at: formData.expires_at || undefined,
+    });
 
     setEditDialogOpen(false);
     setSelectedAnnouncement(null);
-
-    toast({
-      title: "Announcement Updated",
-      description: "The announcement has been updated successfully",
-    });
   };
 
-  const handleDelete = () => {
-    setAnnouncements(announcements.filter(a => a.id !== selectedAnnouncement.id));
+  const handleDelete = async () => {
+    if (!selectedAnnouncement) return;
+    await deleteAnnouncement.mutateAsync(selectedAnnouncement.id);
     setDeleteDialogOpen(false);
     setSelectedAnnouncement(null);
-
-    toast({
-      title: "Announcement Deleted",
-      description: "The announcement has been removed",
-      variant: "destructive",
-    });
   };
 
-  const openEditDialog = (announcement: any) => {
+  const openEditDialog = (announcement: Announcement) => {
     setSelectedAnnouncement(announcement);
     setFormData({
       title: announcement.title,
       content: announcement.content,
-      targetAudience: announcement.targetAudience,
+      target_audience: announcement.target_audience,
       priority: announcement.priority,
+      published: announcement.published,
+      expires_at: announcement.expires_at || "",
     });
     setEditDialogOpen(true);
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "High": return "destructive";
-      case "Medium": return "default";
-      case "Low": return "secondary";
+      case "urgent": return "destructive";
+      case "high": return "destructive";
+      case "normal": return "default";
+      case "low": return "secondary";
       default: return "default";
     }
   };
+
+  const getAudienceLabel = (audience: string[]) => {
+    if (audience.includes("all")) return "Everyone";
+    return audience.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(", ");
+  };
+
+  const handleAudienceChange = (value: string, checked: boolean) => {
+    if (value === "all" && checked) {
+      setFormData({ ...formData, target_audience: ["all"] });
+    } else if (value === "all" && !checked) {
+      setFormData({ ...formData, target_audience: [] });
+    } else {
+      let newAudience = formData.target_audience.filter(a => a !== "all");
+      if (checked) {
+        newAudience.push(value);
+      } else {
+        newAudience = newAudience.filter(a => a !== value);
+      }
+      setFormData({ ...formData, target_audience: newAudience.length > 0 ? newAudience : ["all"] });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <LoadingSkeleton />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="admin">
@@ -183,7 +174,7 @@ const Announcements = () => {
             <h1 className="text-3xl font-bold">Announcements</h1>
             <p className="text-muted-foreground">Create and manage institute-wide announcements</p>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
+          <Button onClick={() => { resetForm(); setAddDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             New Announcement
           </Button>
@@ -215,15 +206,21 @@ const Announcements = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <CardTitle className="text-xl">{announcement.title}</CardTitle>
                         <Badge variant={getPriorityColor(announcement.priority)}>
                           {announcement.priority}
                         </Badge>
-                        <Badge variant="outline">{announcement.targetAudience}</Badge>
+                        <Badge variant="outline">{getAudienceLabel(announcement.target_audience)}</Badge>
+                        {!announcement.published && (
+                          <Badge variant="secondary">Draft</Badge>
+                        )}
                       </div>
                       <CardDescription>
-                        Posted by {announcement.createdBy} on {announcement.createdAt}
+                        Posted on {format(new Date(announcement.created_at || ""), "PPP")}
+                        {announcement.expires_at && (
+                          <> · Expires on {format(new Date(announcement.expires_at), "PPP")}</>
+                        )}
                       </CardDescription>
                     </div>
                     <div className="flex gap-1">
@@ -292,47 +289,92 @@ const Announcements = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="audience">Target Audience</Label>
-                <Select
-                  value={formData.targetAudience}
-                  onValueChange={(value) => setFormData({ ...formData, targetAudience: value })}
-                >
-                  <SelectTrigger id="audience" className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="Everyone">Everyone</SelectItem>
-                    <SelectItem value="All Students">All Students</SelectItem>
-                    <SelectItem value="All Faculty">All Faculty</SelectItem>
-                    <SelectItem value="CS Students">CS Students</SelectItem>
-                    <SelectItem value="IT Students">IT Students</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Target Audience</Label>
+                <div className="space-y-2 p-3 border rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="all"
+                      checked={formData.target_audience.includes("all")}
+                      onCheckedChange={(checked) => handleAudienceChange("all", !!checked)}
+                    />
+                    <label htmlFor="all" className="text-sm">Everyone</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="students"
+                      checked={formData.target_audience.includes("students")}
+                      onCheckedChange={(checked) => handleAudienceChange("students", !!checked)}
+                    />
+                    <label htmlFor="students" className="text-sm">Students</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="faculty"
+                      checked={formData.target_audience.includes("faculty")}
+                      onCheckedChange={(checked) => handleAudienceChange("faculty", !!checked)}
+                    />
+                    <label htmlFor="faculty" className="text-sm">Faculty</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="admin"
+                      checked={formData.target_audience.includes("admin")}
+                      onCheckedChange={(checked) => handleAudienceChange("admin", !!checked)}
+                    />
+                    <label htmlFor="admin" className="text-sm">Admin</label>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
-                >
-                  <SelectTrigger id="priority" className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: "low" | "normal" | "high" | "urgent") => 
+                      setFormData({ ...formData, priority: value })}
+                  >
+                    <SelectTrigger id="priority" className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expires_at">Expires At (Optional)</Label>
+                  <Input
+                    id="expires_at"
+                    type="datetime-local"
+                    value={formData.expires_at}
+                    onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  />
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="published"
+                checked={formData.published}
+                onCheckedChange={(checked) => setFormData({ ...formData, published: !!checked })}
+              />
+              <label htmlFor="published" className="text-sm">Publish immediately</label>
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Publish Announcement</Button>
+              <Button type="submit" disabled={createAnnouncement.isPending}>
+                {createAnnouncement.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Publish Announcement
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -372,47 +414,92 @@ const Announcements = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-audience">Target Audience</Label>
-                <Select
-                  value={formData.targetAudience}
-                  onValueChange={(value) => setFormData({ ...formData, targetAudience: value })}
-                >
-                  <SelectTrigger id="edit-audience" className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="Everyone">Everyone</SelectItem>
-                    <SelectItem value="All Students">All Students</SelectItem>
-                    <SelectItem value="All Faculty">All Faculty</SelectItem>
-                    <SelectItem value="CS Students">CS Students</SelectItem>
-                    <SelectItem value="IT Students">IT Students</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Target Audience</Label>
+                <div className="space-y-2 p-3 border rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-all"
+                      checked={formData.target_audience.includes("all")}
+                      onCheckedChange={(checked) => handleAudienceChange("all", !!checked)}
+                    />
+                    <label htmlFor="edit-all" className="text-sm">Everyone</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-students"
+                      checked={formData.target_audience.includes("students")}
+                      onCheckedChange={(checked) => handleAudienceChange("students", !!checked)}
+                    />
+                    <label htmlFor="edit-students" className="text-sm">Students</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-faculty"
+                      checked={formData.target_audience.includes("faculty")}
+                      onCheckedChange={(checked) => handleAudienceChange("faculty", !!checked)}
+                    />
+                    <label htmlFor="edit-faculty" className="text-sm">Faculty</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-admin"
+                      checked={formData.target_audience.includes("admin")}
+                      onCheckedChange={(checked) => handleAudienceChange("admin", !!checked)}
+                    />
+                    <label htmlFor="edit-admin" className="text-sm">Admin</label>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-priority">Priority</Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
-                >
-                  <SelectTrigger id="edit-priority" className="bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: "low" | "normal" | "high" | "urgent") => 
+                      setFormData({ ...formData, priority: value })}
+                  >
+                    <SelectTrigger id="edit-priority" className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-expires_at">Expires At (Optional)</Label>
+                  <Input
+                    id="edit-expires_at"
+                    type="datetime-local"
+                    value={formData.expires_at}
+                    onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  />
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-published"
+                checked={formData.published}
+                onCheckedChange={(checked) => setFormData({ ...formData, published: !!checked })}
+              />
+              <label htmlFor="edit-published" className="text-sm">Published</label>
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={updateAnnouncement.isPending}>
+                {updateAnnouncement.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -429,7 +516,12 @@ const Announcements = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteAnnouncement.isPending}
+            >
+              {deleteAnnouncement.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

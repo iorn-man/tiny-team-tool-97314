@@ -24,8 +24,10 @@ import { EditStudentDialog } from "@/components/admin/EditStudentDialog";
 import { DeleteStudentDialog } from "@/components/admin/DeleteStudentDialog";
 import { StudentDetailDialog } from "@/components/admin/StudentDetailDialog";
 import { CSVImportDialog } from "@/components/admin/CSVImportDialog";
+import { LinkStudentAccountDialog } from "@/components/admin/LinkStudentAccountDialog";
 import { useStudents, Student } from "@/hooks/useStudents";
 import { LoadingSkeleton } from "@/components/shared";
+import { Link } from "lucide-react";
 
 const Students = () => {
   const { students, isLoading, createStudent, updateStudent, deleteStudent } = useStudents();
@@ -41,6 +43,7 @@ const Students = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [linkAccountOpen, setLinkAccountOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -99,6 +102,11 @@ const Students = () => {
   const handleDeleteClick = (student: Student) => {
     setSelectedStudent(student);
     setDeleteDialogOpen(true);
+  };
+
+  const handleLinkAccountClick = (student: Student) => {
+    setSelectedStudent(student);
+    setLinkAccountOpen(true);
   };
 
   const handleCSVImport = async (data: any[]) => {
@@ -225,6 +233,16 @@ const Students = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {!student.user_id && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleLinkAccountClick(student)}
+                            title="Link Account"
+                          >
+                            <Link className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -319,6 +337,16 @@ const Students = () => {
         onOpenChange={setCsvImportOpen}
         onImport={handleCSVImport}
         type="students"
+      />
+
+      <LinkStudentAccountDialog
+        open={linkAccountOpen}
+        onOpenChange={setLinkAccountOpen}
+        student={selectedStudent}
+        onSuccess={() => {
+          // Refetch students data
+          window.location.reload();
+        }}
       />
     </DashboardLayout>
   );
