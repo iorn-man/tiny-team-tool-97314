@@ -14,6 +14,13 @@ export interface Course {
   status?: string;
   created_at?: string;
   updated_at?: string;
+  faculty?: {
+    id: string;
+    full_name: string;
+    email: string;
+    department?: string;
+  } | null;
+  enrolled_count?: number;
 }
 
 export const useCourses = () => {
@@ -23,18 +30,43 @@ export const useCourses = () => {
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch courses with faculty info
+      const { data: coursesData, error: coursesError } = await supabase
         .from("courses")
-        .select("*")
+        .select(`
+          *,
+          faculty:faculties(id, full_name, email, department)
+        `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Course[];
+      if (coursesError) throw coursesError;
+
+      // Fetch enrollment counts for each course
+      const { data: enrollmentCounts, error: enrollmentError } = await supabase
+        .from("enrollments")
+        .select("course_id")
+        .eq("status", "enrolled");
+
+      if (enrollmentError) throw enrollmentError;
+
+      // Count enrollments per course
+      const countMap: Record<string, number> = {};
+      enrollmentCounts?.forEach((e) => {
+        countMap[e.course_id] = (countMap[e.course_id] || 0) + 1;
+      });
+
+      // Merge enrollment counts into courses
+      const coursesWithCounts = coursesData?.map((course) => ({
+        ...course,
+        enrolled_count: countMap[course.id] || 0,
+      }));
+
+      return coursesWithCounts as Course[];
     },
   });
 
   const createCourse = useMutation({
-    mutationFn: async (newCourse: Omit<Course, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (newCourse: Omit<Course, "id" | "created_at" | "updated_at" | "faculty" | "enrolled_count">) => {
       // Check for unique course code
       const { data: existingCourse } = await supabase
         .from("courses")
@@ -73,9 +105,12 @@ export const useCourses = () => {
 
   const updateCourse = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Course> & { id: string }) => {
+      // Remove nested objects that shouldn't be updated
+      const { faculty, enrolled_count, ...cleanUpdates } = updates as any;
+      
       const { data, error } = await supabase
         .from("courses")
-        .update(updates)
+        .update(cleanUpdates)
         .eq("id", id)
         .select()
         .single();
