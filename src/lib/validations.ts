@@ -83,8 +83,9 @@ export const facultySchema = z.object({
     .regex(/^[A-Z0-9-_]+$/i, "Faculty ID can only contain letters, numbers, hyphens and underscores"),
   department: z.string()
     .trim()
-    .min(2, "Department must be at least 2 characters")
-    .max(100, "Department must be less than 100 characters"),
+    .max(100, "Department must be less than 100 characters")
+    .optional()
+    .or(z.literal("")),
   qualification: z.string()
     .max(100, "Qualification must be less than 100 characters")
     .optional()
