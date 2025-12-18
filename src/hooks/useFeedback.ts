@@ -8,7 +8,7 @@ export interface Feedback {
   category: string;
   subject: string;
   description: string;
-  status: "pending" | "in_progress" | "resolved" | "closed";
+  status: "pending" | "in_progress" | "under_review" | "resolved" | "rejected" | "closed";
   priority: "low" | "normal" | "high" | "urgent";
   admin_response?: string;
   responded_by?: string;

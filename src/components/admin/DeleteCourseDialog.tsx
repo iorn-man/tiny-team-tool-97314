@@ -24,7 +24,7 @@ export function DeleteCourseDialog({ open, onOpenChange, course, onConfirm }: De
     onConfirm(course.id);
     toast({
       title: "Course Deleted",
-      description: `${course.name} has been removed from the system`,
+      description: `${course.course_name} has been removed from the system`,
       variant: "destructive",
     });
     onOpenChange(false);
@@ -38,10 +38,10 @@ export function DeleteCourseDialog({ open, onOpenChange, course, onConfirm }: De
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete <span className="font-semibold">{course.name}</span> ({course.code}) from the system.
+            This will permanently delete <span className="font-semibold">{course.course_name}</span> ({course.course_code}) from the system.
             This action cannot be undone and will remove:
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>All student enrollments ({course.enrolledStudents} students)</li>
+              <li>All student enrollments ({course.enrolled_count || 0} students)</li>
               <li>Attendance records</li>
               <li>Grade entries</li>
               <li>Course materials</li>

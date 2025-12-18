@@ -1,6 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { User, Users, BookOpen } from "lucide-react";
 
 interface CourseDetailDialogProps {
   open: boolean;
@@ -16,6 +17,9 @@ export function CourseDetailDialog({ open, onOpenChange, course }: CourseDetailD
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Course Details</DialogTitle>
+          <DialogDescription>
+            View detailed information about this course
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -60,8 +64,40 @@ export function CourseDetailDialog({ open, onOpenChange, course }: CourseDetailD
 
           <Separator />
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-start gap-2">
+              <User className="h-4 w-4 mt-1 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Assigned Faculty</p>
+                {course.faculty ? (
+                  <div>
+                    <p className="font-semibold">{course.faculty.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{course.faculty.email}</p>
+                    {course.faculty.department && (
+                      <p className="text-sm text-muted-foreground">{course.faculty.department}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Not Assigned</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Users className="h-4 w-4 mt-1 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Enrolled Students</p>
+                <p className="font-semibold">{course.enrolled_count || 0} students</p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           <div>
-            <p className="text-sm text-muted-foreground mb-2">Description</p>
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Description</p>
+            </div>
             <p className="text-sm">
               {course.description || `This course provides comprehensive coverage of ${course.course_name?.toLowerCase() || "the subject"}. Students will gain practical knowledge and skills essential for their academic and professional development.`}
             </p>

@@ -122,8 +122,10 @@ const StudentFeedback = () => {
     const variants: Record<string, any> = {
       pending: { variant: "secondary", icon: Clock },
       in_progress: { variant: "default", icon: MessageSquare },
+      under_review: { variant: "outline", icon: MessageSquare },
       resolved: { variant: "default", icon: CheckCircle },
       rejected: { variant: "destructive", icon: XCircle },
+      closed: { variant: "secondary", icon: CheckCircle },
     };
     const config = variants[status || "pending"] || variants.pending;
     const Icon = config.icon;
@@ -159,6 +161,10 @@ const StudentFeedback = () => {
                   <SelectItem value="feedback">Feedback</SelectItem>
                   <SelectItem value="complaint">Complaint</SelectItem>
                   <SelectItem value="suggestion">Suggestion</SelectItem>
+                  <SelectItem value="academic">Academic</SelectItem>
+                  <SelectItem value="facility">Facility</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

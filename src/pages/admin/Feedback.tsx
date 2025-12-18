@@ -38,8 +38,10 @@ const Feedback = () => {
     const variants: Record<string, any> = {
       pending: { variant: "secondary", icon: Clock },
       in_progress: { variant: "default", icon: MessageSquare },
+      under_review: { variant: "outline", icon: MessageSquare },
       resolved: { variant: "default", icon: CheckCircle },
       rejected: { variant: "destructive", icon: XCircle },
+      closed: { variant: "secondary", icon: CheckCircle },
     };
     const config = variants[status] || variants.pending;
     const Icon = config.icon;
@@ -81,7 +83,7 @@ const Feedback = () => {
   const handleUpdateStatus = (feedbackId: string, newStatus: string) => {
     updateFeedback.mutate({
       id: feedbackId,
-      status: newStatus as "pending" | "in_progress" | "resolved" | "closed",
+      status: newStatus as "pending" | "in_progress" | "under_review" | "resolved" | "rejected" | "closed",
     });
   };
 
@@ -119,8 +121,10 @@ const Feedback = () => {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="under_review">Under Review</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -230,8 +234,10 @@ const Feedback = () => {
                                     <SelectContent>
                                       <SelectItem value="pending">Pending</SelectItem>
                                       <SelectItem value="in_progress">In Progress</SelectItem>
+                                      <SelectItem value="under_review">Under Review</SelectItem>
                                       <SelectItem value="resolved">Resolved</SelectItem>
                                       <SelectItem value="rejected">Rejected</SelectItem>
+                                      <SelectItem value="closed">Closed</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>

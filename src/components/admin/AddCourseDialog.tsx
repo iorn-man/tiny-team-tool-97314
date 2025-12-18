@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +91,7 @@ export function AddCourseDialog({ open, onOpenChange, onAdd }: AddCourseDialogPr
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Course</DialogTitle>
+          <DialogDescription>Create a new course and optionally assign a faculty member</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

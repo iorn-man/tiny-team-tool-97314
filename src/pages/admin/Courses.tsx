@@ -26,18 +26,6 @@ import { DeleteCourseDialog } from "@/components/admin/DeleteCourseDialog";
 import { CourseDetailDialog } from "@/components/admin/CourseDetailDialog";
 import { CSVImportDialog } from "@/components/admin/CSVImportDialog";
 
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  credits: number;
-  faculty: string;
-  facultyId: string;
-  semester: string;
-  status: "active" | "inactive";
-  enrolledStudents: number;
-}
-
 const Courses = () => {
   const { courses, isLoading, createCourse, updateCourse, deleteCourse } = useCourses();
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,9 +126,13 @@ const Courses = () => {
                   <TableCell className="font-medium">{course.course_code}</TableCell>
                   <TableCell>{course.course_name}</TableCell>
                   <TableCell>{course.credits}</TableCell>
-                  <TableCell>Faculty Assigned</TableCell>
+                  <TableCell>
+                    {course.faculty?.full_name || (
+                      <span className="text-muted-foreground">Not Assigned</span>
+                    )}
+                  </TableCell>
                   <TableCell>Semester {course.semester || "N/A"}</TableCell>
-                  <TableCell>0</TableCell>
+                  <TableCell>{course.enrolled_count || 0}</TableCell>
                   <TableCell>
                     <Badge variant={course.status === "active" ? "default" : "secondary"}>
                       {course.status || "active"}
