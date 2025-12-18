@@ -157,7 +157,7 @@ export function AddFacultyDialog({ open, onOpenChange, onSubmit }: AddFacultyDia
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Department *</Label>
+              <Label htmlFor="department">Department</Label>
               <Select
                 value={formData.department}
                 onValueChange={(value) => setFormData({ ...formData, department: value })}
