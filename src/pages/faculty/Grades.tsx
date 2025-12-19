@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Award, FileText } from "lucide-react";
+import { Save, Award, FileText, Upload } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import { useCourses } from "@/hooks/useCourses";
 import { useGrades } from "@/hooks/useGrades";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import CSVGradeImportDialog from "@/components/faculty/CSVGradeImportDialog";
 
 interface EnrolledStudent {
   id: string;
@@ -46,6 +47,7 @@ const Grades = () => {
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [csvDialogOpen, setCSVDialogOpen] = useState(false);
 
   const assessmentTypes = [
     { id: "midterm", name: "Midterm Exam", maxMarks: 100 },
@@ -399,6 +401,13 @@ const Grades = () => {
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
+                    onClick={() => setCSVDialogOpen(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setGrades({});
                       setSubmitted(false);
@@ -411,6 +420,21 @@ const Grades = () => {
                     {submitted ? "Submitted" : "Submit Grades"}
                   </Button>
                 </div>
+
+                <CSVGradeImportDialog
+                  open={csvDialogOpen}
+                  onOpenChange={setCSVDialogOpen}
+                  courseId={selectedCourse}
+                  courseName={facultyCourses.find(c => c.id === selectedCourse)?.course_name || ""}
+                  assessmentType={selectedAssessment}
+                  assessmentName={selectedAssessmentData?.name || ""}
+                  maxMarks={selectedAssessmentData?.maxMarks || 100}
+                  enrolledStudents={enrolledStudents}
+                  onImport={(importedGrades) => {
+                    setGrades(prev => ({ ...prev, ...importedGrades }));
+                    setSubmitted(false);
+                  }}
+                />
 
                 {submitted && (
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
