@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, ChevronLeft, ChevronRight, Trash2, Users } from "lucide-react";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { useStudents } from "@/hooks/useStudents";
 import { useCourses } from "@/hooks/useCourses";
@@ -43,10 +43,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BulkEnrollmentDialog } from "@/components/admin/BulkEnrollmentDialog";
 
 const Enrollments = () => {
   const { toast } = useToast();
-  const { enrollments, isLoading, createEnrollment, deleteEnrollment } = useEnrollments();
+  const { enrollments, isLoading, createEnrollment, bulkCreateEnrollment, deleteEnrollment } = useEnrollments();
   const { students } = useStudents();
   const { courses } = useCourses();
 
@@ -59,6 +60,7 @@ const Enrollments = () => {
 
   // Dialog states
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
   
@@ -126,6 +128,10 @@ const Enrollments = () => {
     }
   };
 
+  const handleBulkEnroll = async (courseId: string, studentIds: string[]) => {
+    await bulkCreateEnrollment.mutateAsync({ course_id: courseId, student_ids: studentIds });
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout role="admin">
@@ -142,10 +148,16 @@ const Enrollments = () => {
             <h1 className="text-3xl font-bold">Course Enrollments</h1>
             <p className="text-muted-foreground">Manage student course registrations</p>
           </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Enroll Student
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBulkDialogOpen(true)}>
+              <Users className="h-4 w-4 mr-2" />
+              Bulk Enroll
+            </Button>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Enroll Student
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -370,6 +382,15 @@ const Enrollments = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Bulk Enrollment Dialog */}
+      <BulkEnrollmentDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        students={students}
+        courses={courses}
+        existingEnrollments={enrollments}
+        onBulkEnroll={handleBulkEnroll}
+      />
     </DashboardLayout>
   );
 };

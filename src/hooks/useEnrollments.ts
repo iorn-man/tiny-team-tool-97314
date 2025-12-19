@@ -85,6 +85,68 @@ export const useEnrollments = () => {
     },
   });
 
+  const bulkCreateEnrollment = useMutation({
+    mutationFn: async ({ course_id, student_ids }: { course_id: string; student_ids: string[] }) => {
+      const results = { success: 0, skipped: 0, errors: 0 };
+
+      for (const student_id of student_ids) {
+        try {
+          // Check if enrollment already exists
+          const { data: existing } = await supabase
+            .from("enrollments")
+            .select("id, status")
+            .eq("student_id", student_id)
+            .eq("course_id", course_id)
+            .maybeSingle();
+
+          if (existing) {
+            if (existing.status === "enrolled") {
+              results.skipped++;
+              continue;
+            }
+            // Re-enroll by updating status
+            await supabase
+              .from("enrollments")
+              .update({ status: "enrolled", enrollment_date: new Date().toISOString().split('T')[0] })
+              .eq("id", existing.id);
+            results.success++;
+          } else {
+            // Create new enrollment
+            const { error } = await supabase
+              .from("enrollments")
+              .insert([{ student_id, course_id, status: "enrolled" }]);
+            if (error) throw error;
+            results.success++;
+          }
+        } catch {
+          results.errors++;
+        }
+      }
+
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+      const messages = [];
+      if (results.success > 0) messages.push(`${results.success} enrolled`);
+      if (results.skipped > 0) messages.push(`${results.skipped} already enrolled`);
+      if (results.errors > 0) messages.push(`${results.errors} failed`);
+      
+      toast({
+        title: "Bulk Enrollment Complete",
+        description: messages.join(", "),
+        variant: results.errors > 0 ? "destructive" : "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete bulk enrollment",
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateEnrollment = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Enrollment> & { id: string }) => {
       const { data, error } = await supabase
@@ -143,6 +205,7 @@ export const useEnrollments = () => {
     enrollments,
     isLoading,
     createEnrollment,
+    bulkCreateEnrollment,
     updateEnrollment,
     deleteEnrollment,
   };
