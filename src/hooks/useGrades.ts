@@ -40,10 +40,10 @@ export const useGrades = (courseId?: string, studentId?: string) => {
 
   const createGrade = useMutation({
     mutationFn: async (newGrade: Omit<Grade, "id" | "created_at" | "updated_at" | "percentage">) => {
-      const percentage = (newGrade.obtained_marks / newGrade.max_marks) * 100;
+      // Don't include percentage - it's a generated column in the database
       const { data, error } = await supabase
         .from("grades")
-        .insert([{ ...newGrade, percentage }])
+        .insert([newGrade])
         .select()
         .single();
 
@@ -68,13 +68,12 @@ export const useGrades = (courseId?: string, studentId?: string) => {
 
   const updateGrade = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Grade> & { id: string }) => {
-      if (updates.obtained_marks !== undefined && updates.max_marks !== undefined) {
-        updates.percentage = (updates.obtained_marks / updates.max_marks) * 100;
-      }
+      // Remove percentage from updates - it's a generated column
+      const { percentage, ...safeUpdates } = updates;
       
       const { data, error } = await supabase
         .from("grades")
-        .update(updates)
+        .update(safeUpdates)
         .eq("id", id)
         .select()
         .single();
