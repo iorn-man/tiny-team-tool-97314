@@ -14,6 +14,7 @@ import {
   Shield,
   Briefcase,
   History,
+  LineChart,
 } from "lucide-react";
 import dreamCodeLogo from "@/assets/dream-code-logo-full.jpg";
 import {
@@ -57,6 +58,7 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
     { title: "Mark Attendance", url: "/faculty/attendance", icon: Calendar },
     { title: "Attendance History", url: "/faculty/attendance-history", icon: History },
     { title: "Grades", url: "/faculty/grades", icon: ClipboardCheck },
+    { title: "Analytics", url: "/faculty/analytics", icon: LineChart },
     { title: "Announcements", url: "/faculty/announcements", icon: MessageSquare },
     { title: "Reports", url: "/faculty/reports", icon: BarChart3 },
   ];

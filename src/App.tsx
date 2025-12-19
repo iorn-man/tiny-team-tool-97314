@@ -27,6 +27,7 @@ import MyCourses from "./pages/faculty/MyCourses";
 import Attendance from "./pages/faculty/Attendance";
 import AttendanceHistory from "./pages/faculty/AttendanceHistory";
 import Grades from "./pages/faculty/Grades";
+import StudentAnalytics from "./pages/faculty/StudentAnalytics";
 import FacultyAnnouncements from "./pages/faculty/FacultyAnnouncements";
 import FacultyReports from "./pages/faculty/FacultyReports";
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -150,6 +151,11 @@ const App = () => (
             <Route path="/faculty/grades" element={
               <ProtectedRoute allowedRoles={["faculty"]}>
                 <Grades />
+              </ProtectedRoute>
+            } />
+            <Route path="/faculty/analytics" element={
+              <ProtectedRoute allowedRoles={["faculty"]}>
+                <StudentAnalytics />
               </ProtectedRoute>
             } />
             <Route path="/faculty/announcements" element={
