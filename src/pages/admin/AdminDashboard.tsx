@@ -7,6 +7,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useRecentActivities } from "@/hooks/useRecentActivities";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminDashboard = () => {
   const { data: dashboardStats, isLoading } = useDashboardStats();
@@ -38,27 +43,68 @@ const AdminDashboard = () => {
     },
   ];
 
-  // Mock data for charts
-  const attendanceData = [
-    { month: "Jan", percentage: 85 },
-    { month: "Feb", percentage: 88 },
-    { month: "Mar", percentage: 82 },
-    { month: "Apr", percentage: 90 },
-    { month: "May", percentage: 87 },
-    { month: "Jun", percentage: 92 },
-  ];
+  // Fetch real attendance data for the last 6 months
+  const { data: attendanceChartData, isLoading: attendanceLoading } = useQuery({
+    queryKey: ["attendance-chart"],
+    queryFn: async () => {
+      const months = [];
+      const now = new Date();
 
-  const gradeDistributionData = [
-    { grade: "A+", count: 120, percentage: 15 },
-    { grade: "A", count: 180, percentage: 22.5 },
-    { grade: "B+", count: 150, percentage: 18.75 },
-    { grade: "B", count: 140, percentage: 17.5 },
-    { grade: "C+", count: 100, percentage: 12.5 },
-    { grade: "C", count: 80, percentage: 10 },
-    { grade: "F", count: 30, percentage: 3.75 },
-  ];
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = subMonths(now, i);
+        const start = format(startOfMonth(monthDate), "yyyy-MM-dd");
+        const end = format(endOfMonth(monthDate), "yyyy-MM-dd");
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658"];
+        const { data: attendance } = await supabase
+          .from("attendance")
+          .select("status")
+          .gte("date", start)
+          .lte("date", end);
+
+        const total = attendance?.length || 0;
+        const present = attendance?.filter(a => a.status === "present").length || 0;
+        const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+        months.push({
+          month: format(monthDate, "MMM"),
+          percentage,
+        });
+      }
+
+      return months;
+    },
+  });
+
+  // Fetch real grade distribution
+  const { data: gradeChartData, isLoading: gradesLoading } = useQuery({
+    queryKey: ["grade-distribution"],
+    queryFn: async () => {
+      const { data: grades } = await supabase
+        .from("grades")
+        .select("grade_letter");
+
+      const distribution: Record<string, number> = {
+        "A+": 0, "A": 0, "B+": 0, "B": 0, "C+": 0, "C": 0, "D": 0, "F": 0,
+      };
+
+      grades?.forEach(g => {
+        if (g.grade_letter && distribution.hasOwnProperty(g.grade_letter)) {
+          distribution[g.grade_letter]++;
+        }
+      });
+
+      const total = grades?.length || 0;
+      return Object.entries(distribution)
+        .filter(([_, count]) => count > 0)
+        .map(([grade, count]) => ({
+          grade,
+          count,
+          percentage: total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0,
+        }));
+    },
+  });
+
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF6B6B"];
 
   return (
     <DashboardLayout role="admin">
@@ -126,55 +172,80 @@ const AdminDashboard = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <ChartWrapper
             title="Attendance Overview"
-            description="Monthly average attendance percentage"
+            description="Monthly average attendance percentage (last 6 months)"
           >
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={attendanceData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                  }}
-                />
-                <Bar dataKey="percentage" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {attendanceLoading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <Skeleton className="h-full w-full" />
+              </div>
+            ) : attendanceChartData && attendanceChartData.some(d => d.percentage > 0) ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={attendanceChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis className="text-xs" domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                    }}
+                    formatter={(value: number) => [`${value}%`, "Attendance"]}
+                  />
+                  <Bar dataKey="percentage" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No attendance data available
+              </div>
+            )}
           </ChartWrapper>
 
           <ChartWrapper
             title="Grade Distribution"
-            description="Current semester grade breakdown"
+            description="Current grade breakdown across all courses"
           >
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={gradeDistributionData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ grade, percentage }) => `${grade}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {gradeDistributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {gradesLoading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <Skeleton className="h-full w-full" />
+              </div>
+            ) : gradeChartData && gradeChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={gradeChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ grade, percentage }) => `${grade}: ${percentage}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {gradeChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                    }}
+                    formatter={(value: number, name: string, props: any) => [
+                      `${value} students (${props.payload.percentage}%)`,
+                      props.payload.grade
+                    ]}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No grade data available
+              </div>
+            )}
           </ChartWrapper>
         </div>
       </div>
