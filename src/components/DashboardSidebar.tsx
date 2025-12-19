@@ -13,6 +13,7 @@ import {
   BarChart3,
   Shield,
   Briefcase,
+  History,
 } from "lucide-react";
 import dreamCodeLogo from "@/assets/dream-code-logo-full.jpg";
 import {
@@ -53,7 +54,8 @@ const DashboardSidebar = ({ role }: DashboardSidebarProps) => {
   const facultyItems = [
     { title: "Dashboard", url: "/faculty/dashboard", icon: LayoutDashboard },
     { title: "My Courses", url: "/faculty/courses", icon: BookOpen },
-    { title: "Attendance", url: "/faculty/attendance", icon: Calendar },
+    { title: "Mark Attendance", url: "/faculty/attendance", icon: Calendar },
+    { title: "Attendance History", url: "/faculty/attendance-history", icon: History },
     { title: "Grades", url: "/faculty/grades", icon: ClipboardCheck },
     { title: "Announcements", url: "/faculty/announcements", icon: MessageSquare },
     { title: "Reports", url: "/faculty/reports", icon: BarChart3 },

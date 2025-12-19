@@ -25,6 +25,7 @@ import SeedData from "./pages/admin/SeedData";
 import FacultyDashboard from "./pages/faculty/FacultyDashboard";
 import MyCourses from "./pages/faculty/MyCourses";
 import Attendance from "./pages/faculty/Attendance";
+import AttendanceHistory from "./pages/faculty/AttendanceHistory";
 import Grades from "./pages/faculty/Grades";
 import FacultyAnnouncements from "./pages/faculty/FacultyAnnouncements";
 import FacultyReports from "./pages/faculty/FacultyReports";
@@ -139,6 +140,11 @@ const App = () => (
             <Route path="/faculty/attendance" element={
               <ProtectedRoute allowedRoles={["faculty"]}>
                 <Attendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/faculty/attendance-history" element={
+              <ProtectedRoute allowedRoles={["faculty"]}>
+                <AttendanceHistory />
               </ProtectedRoute>
             } />
             <Route path="/faculty/grades" element={
